@@ -80,7 +80,7 @@ def _has_gemini_key() -> bool:
     if os.environ.get("GEMINI_API_KEY"):
         return True
     try:
-        return bool(st.secrets.get("GEMINI_API_KEY"))
+        return bool(st.secrets.get("GEMINI_API_KEY") or st.secrets.get("gemini_api"))
     except Exception:
         return False
 

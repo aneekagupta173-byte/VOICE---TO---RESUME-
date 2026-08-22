@@ -25,7 +25,7 @@ def _get_gemini_api_key() -> str | None:
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         try:
-            api_key = st.secrets["GEMINI_API_KEY"]
+            api_key = st.secrets.get("GEMINI_API_KEY") or st.secrets.get("gemini_api")
         except (KeyError, FileNotFoundError):
             api_key = None
     return api_key.strip() if isinstance(api_key, str) and api_key.strip() else None
