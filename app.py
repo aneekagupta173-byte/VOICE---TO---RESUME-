@@ -282,9 +282,17 @@ elif st.session_state.stage == "roast_spice":
         with st.spinner("Reading your résumé and warming up..."):
             baseline_score = history.get_last_score()  # capture BEFORE saving the new one
 
-            st.session_state.roast_result = roast_engine.generate_roast_with_retry(
-                st.session_state.roast_source_text, spice_level=spice
-            )
+            try:
+                st.session_state.roast_result = roast_engine.generate_roast_with_retry(
+                    st.session_state.roast_source_text, spice_level=spice
+                )
+            except RuntimeError as error:
+                message = str(error)
+                if "GROQ_API_KEY not set" in message:
+                    st.error("Groq key is missing. Add GROQ_API_KEY in Manage app > Settings > Secrets, then reboot the app.")
+                else:
+                    st.error("Groq rejected the roast request. Check that your key is active and that the Groq model is available, then try again.")
+                st.stop()
             st.session_state.roast_card_bytes = image_gen.generate_roast_card(spice)
             speech_text = roast_engine.roast_to_speech_text(st.session_state.roast_result)
             st.session_state.roast_audio = audio_utils.synthesize_speech(

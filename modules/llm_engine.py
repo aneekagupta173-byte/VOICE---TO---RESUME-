@@ -20,15 +20,20 @@ MODEL = "llama-3.3-70b-versatile"
 _client = None
 
 
+def _get_groq_api_key() -> str | None:
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        try:
+            api_key = st.secrets["GROQ_API_KEY"]
+        except (KeyError, FileNotFoundError):
+            api_key = None
+    return api_key.strip() if isinstance(api_key, str) and api_key.strip() else None
+
+
 def get_client() -> Groq:
     global _client
     if _client is None:
-        api_key = os.environ.get("GROQ_API_KEY")
-        if not api_key:
-            try:
-                api_key = st.secrets.get("GROQ_API_KEY")
-            except Exception:
-                api_key = None
+        api_key = _get_groq_api_key()
         if not api_key:
             raise RuntimeError(
                 "GROQ_API_KEY not set. Add it to Streamlit Cloud Secrets or your local .env "
