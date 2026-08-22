@@ -132,29 +132,33 @@ def generate_roast(resume_text: str, spice_level: str = "Medium") -> dict:
     resume_text = _clean_text(resume_text)[:4000]
 
     tone_guide = {
-        "Mild": "gentle, encouraging humor — tease lightly, mostly compliment",
-        "Medium": "witty and honest, like a sharp friend giving real feedback",
-        "Well Done": "savage, comedy-roast energy — but never cruel or personal",
+        "Mild": "warm and encouraging, with light observations",
+        "Medium": "direct, constructive, and personable",
+        "Well Done": "very candid but respectful and solution-focused",
     }[spice_level]
 
     prompt = f"""
-You are an expert resume reviewer and comedy roast writer.
+You are a professional résumé editor providing constructive feedback.
 
-Review this resume with a {tone_guide} tone.
+Review this résumé with a {tone_guide} tone. Focus only on clarity, structure,
+specificity, relevance, and presentation of professional information.
 
-IMPORTANT:
-- Only talk about information actually present in the resume.
-- Never insult the person.
-- Every roast must include an actionable improvement.
-- Give 4 to 6 roast points.
-- Give a score from 0 to 10.
-- Finish with one encouraging sentence.
+Guidelines:
+- Discuss only the résumé content provided below.
+- Do not judge, diagnose, or make assumptions about the person.
+- Do not mention protected traits, health, politics, religion, or other sensitive topics.
+- Each observation must include one practical résumé improvement.
+- Provide 4 to 6 observations and a score from 0 to 10.
+- Finish with one encouraging, professional sentence.
 - Return ONLY valid JSON.
 - Do NOT use markdown.
 - Do NOT put JSON inside ```.
 
-Resume:
+Résumé content begins:
+---
 {resume_text}
+---
+Résumé content ends.
 
 Return EXACTLY:
 
@@ -162,7 +166,7 @@ Return EXACTLY:
   "score": 7.5,
   "roast_lines": [
     {{
-      "line": "funny observation about the resume",
+    "line": "clear, respectful observation about the résumé",
       "fix": "specific actionable improvement"
     }}
   ],

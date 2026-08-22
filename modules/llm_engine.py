@@ -60,25 +60,36 @@ def _call_json(prompt: str, max_tokens: int = 700) -> dict:
 
 
 def structure_summary(transcript: str, target_role: str) -> str:
-    prompt = f"""Turn this rough spoken self-introduction into a polished 2-3
-sentence professional résumé summary for someone targeting a "{target_role}" role.
-Keep every real fact from what they said. Remove filler words and rambling.
-Write in confident third-less first-person résumé style (no "I think" or "um").
+    prompt = f"""You are assisting with professional résumé preparation.
+Rewrite the spoken notes below as a polished 2-3 sentence résumé summary for a
+candidate targeting the "{target_role}" role. Keep only factual professional
+information from the notes, remove filler and repetition, and do not infer
+personal, sensitive, or unconfirmed details. Use concise third-person résumé
+language.
 
-Spoken transcript: "{transcript}"
+Spoken notes begin:
+---
+{transcript}
+---
+Spoken notes end.
 
 Respond ONLY with JSON: {{"summary": "..."}}"""
     return _call_json(prompt)["summary"]
 
 
 def structure_experience(transcript: str) -> list[dict]:
-    prompt = f"""Turn this rough spoken description of work history into structured
-résumé entries. Extract job title, company, rough duration if mentioned, and
-2-4 achievement-style bullet points per role (start bullets with strong action
-verbs, quantify results where the person gave any numbers, don't invent facts
-that weren't said). 
+    prompt = f"""You are assisting with professional résumé preparation.
+Convert the spoken work-history notes below into structured résumé entries.
+Extract job title, company, and approximate duration only when stated. Create
+2-4 concise accomplishment bullets per role using strong action verbs. Preserve
+the speaker's facts, and never invent achievements, numbers, qualifications,
+or personal details.
 
-Spoken transcript: "{transcript}"
+Work-history notes begin:
+---
+{transcript}
+---
+Work-history notes end.
 
 Respond ONLY with JSON: {{"experience": [{{"title": "...", "company": "...",
 "duration": "...", "bullets": ["...", "..."]}}]}}"""
@@ -86,10 +97,16 @@ Respond ONLY with JSON: {{"experience": [{{"title": "...", "company": "...",
 
 
 def structure_education(transcript: str) -> list[dict]:
-    prompt = f"""Turn this rough spoken description of education into structured
-résumé entries: degree, institution, and year if mentioned.
+    prompt = f"""You are assisting with professional résumé preparation.
+Convert the education notes below into structured résumé entries. Include a
+degree, institution, and year only when explicitly provided. Do not guess or
+add personal or sensitive information.
 
-Spoken transcript: "{transcript}"
+Education notes begin:
+---
+{transcript}
+---
+Education notes end.
 
 Respond ONLY with JSON: {{"education": [{{"degree": "...", "institution": "...",
 "year": "..."}}]}}"""
@@ -97,11 +114,16 @@ Respond ONLY with JSON: {{"education": [{{"degree": "...", "institution": "...",
 
 
 def structure_skills(transcript: str) -> list[str]:
-    prompt = f"""Extract a clean list of concrete skills (tools, languages,
-frameworks, soft skills explicitly mentioned) from this rough spoken transcript.
-No duplicates, no vague filler entries.
+    prompt = f"""You are assisting with professional résumé preparation.
+Extract a deduplicated list of concrete professional skills explicitly stated
+in the notes below, including tools, languages, frameworks, and relevant
+strengths. Do not infer skills that are not stated.
 
-Spoken transcript: "{transcript}"
+Skills notes begin:
+---
+{transcript}
+---
+Skills notes end.
 
 Respond ONLY with JSON: {{"skills": ["...", "..."]}}"""
     return _call_json(prompt)["skills"]
