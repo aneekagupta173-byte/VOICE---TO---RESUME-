@@ -189,7 +189,7 @@ elif st.session_state.stage == "building":
             st.session_state.banner_bytes = image_gen.generate_header_banner(role)
     except GroqError as error:
         st.error("Groq could not assemble the résumé. Your GROQ_API_KEY is invalid or expired.")
-        st.info("Update the key in your .env file, then restart Streamlit and try again.")
+        st.info("For local runs, update .env. For Streamlit Cloud, update GROQ_API_KEY under Manage app > Settings > Secrets, then reboot the app.")
         st.stop()
     except (KeyError, ValueError, TypeError) as error:
         st.error(f"The résumé response was not in the expected format: {error}")

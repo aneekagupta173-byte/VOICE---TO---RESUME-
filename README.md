@@ -65,6 +65,17 @@ fully offline. TTS and the header image both call free, keyless public
 endpoints — only the LLM structuring step needs your Groq key, and Groq's
 free tier costs nothing to use for a project at this scale.
 
+### Streamlit Cloud
+
+Add this to the app's Secrets section under **Manage app > Settings > Secrets**:
+
+```toml
+GROQ_API_KEY = "your-new-groq-api-key"
+```
+
+After changing the secret, reboot the app. The local `.env` file is not used by
+the deployed Streamlit Cloud app.
+
 ## Project structure
 
 ```
