@@ -63,9 +63,17 @@ def reset_all():
         st.session_state[k] = v
 
 
+def render_back_to_home():
+    if st.session_state.stage != "mode_select":
+        if st.button("← Back to Home", key="back_to_home"):
+            reset_all()
+            st.rerun()
+
+
 st.title("🎙️ Voice Résumé Builder")
 st.caption("Speak your work history into a polished résumé — or upload one "
            "and get it roasted.")
+render_back_to_home()
 
 def _has_groq_key() -> bool:
     if os.environ.get("GROQ_API_KEY"):
@@ -261,11 +269,6 @@ elif st.session_state.stage == "roast_upload":
             st.session_state.stage = "roast_spice"
             st.rerun()
 
-    st.divider()
-    if st.button("← Back"):
-        st.session_state.stage = "mode_select"
-        st.rerun()
-
 # ---------------------------------------------------------------- ROAST STAGE 2: spice level
 elif st.session_state.stage == "roast_spice":
     st.subheader("🌶️ Pick your spice level")
@@ -362,13 +365,7 @@ elif st.session_state.stage == "roast_result":
         )
 
     st.divider()
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Roast another résumé"):
-            st.session_state.stage = "roast_upload"
-            st.session_state.roast_result = None
-            st.rerun()
-    with col2:
-        if st.button("← Back to start"):
-            reset_all()
-            st.rerun()
+    if st.button("Roast another résumé"):
+        st.session_state.stage = "roast_upload"
+        st.session_state.roast_result = None
+        st.rerun()
