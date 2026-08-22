@@ -13,6 +13,7 @@ import json
 import os
 
 from groq import Groq
+import streamlit as st
 
 MODEL = "llama-3.3-70b-versatile"
 
@@ -24,9 +25,14 @@ def get_client() -> Groq:
     if _client is None:
         api_key = os.environ.get("GROQ_API_KEY")
         if not api_key:
+            try:
+                api_key = st.secrets.get("GROQ_API_KEY")
+            except Exception:
+                api_key = None
+        if not api_key:
             raise RuntimeError(
-                "GROQ_API_KEY not set. Copy .env.example to .env and add your free key "
-                "from https://console.groq.com/keys."
+                "GROQ_API_KEY not set. Add it to Streamlit Cloud Secrets or your local .env "
+                "file. Get a key from https://console.groq.com/keys."
             )
         _client = Groq(api_key=api_key)
     return _client
