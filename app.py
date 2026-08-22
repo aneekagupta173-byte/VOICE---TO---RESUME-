@@ -25,6 +25,7 @@ from pathlib import Path
 
 import streamlit as st
 from dotenv import load_dotenv
+from google.genai.errors import APIError
 
 from modules import audio_utils, llm_engine, image_gen, resume_builder, roast_engine, history
 
@@ -189,6 +190,10 @@ elif st.session_state.stage == "building":
     except RuntimeError as error:
         st.error(str(error))
         st.info("For local runs, update .env. For Streamlit Cloud, update GEMINI_API_KEY under Manage app > Settings > Secrets, then reboot the app.")
+        st.stop()
+    except APIError as error:
+        st.error(f"Gemini rejected the résumé request: {error}")
+        st.info("Check the Gemini API key, model access, and API quota, then try again.")
         st.stop()
     except (KeyError, ValueError, TypeError) as error:
         st.error(f"The résumé response was not in the expected format: {error}")
