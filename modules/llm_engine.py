@@ -12,7 +12,7 @@ this module.
 import json
 import os
 
-from groq import Groq
+from groq import AuthenticationError, Groq
 import streamlit as st
 
 MODEL = "llama-3.3-70b-versatile"
@@ -43,14 +43,24 @@ def get_client() -> Groq:
     return _client
 
 
+def _raise_authentication_error(error: AuthenticationError) -> None:
+    raise RuntimeError(
+        "Groq rejected GROQ_API_KEY. Revoke the exposed key, create a new key, "
+        "and update it in local .env or Streamlit Cloud Secrets."
+    ) from error
+
+
 def _call_json(prompt: str, max_tokens: int = 700) -> dict:
     client = get_client()
-    resp = client.chat.completions.create(
-        model=MODEL,
-        max_tokens=max_tokens,
-        messages=[{"role": "user", "content": prompt}],
-        response_format={"type": "json_object"},
-    )
+    try:
+        resp = client.chat.completions.create(
+            model=MODEL,
+            max_tokens=max_tokens,
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+        )
+    except AuthenticationError as error:
+        _raise_authentication_error(error)
     return json.loads(resp.choices[0].message.content.strip())
 
 

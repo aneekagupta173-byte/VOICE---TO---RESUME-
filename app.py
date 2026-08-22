@@ -187,8 +187,12 @@ elif st.session_state.stage == "building":
 
         with st.spinner("Generating a header banner..."):
             st.session_state.banner_bytes = image_gen.generate_header_banner(role)
-    except GroqError as error:
-        st.error("Groq could not assemble the résumé. Your GROQ_API_KEY is invalid or expired.")
+    except RuntimeError as error:
+        st.error(str(error))
+        st.info("For local runs, update .env. For Streamlit Cloud, update GROQ_API_KEY under Manage app > Settings > Secrets, then reboot the app.")
+        st.stop()
+    except GroqError:
+        st.error("Groq could not assemble the résumé. Check that your API key is active and that your account has access to the model.")
         st.info("For local runs, update .env. For Streamlit Cloud, update GROQ_API_KEY under Manage app > Settings > Secrets, then reboot the app.")
         st.stop()
     except (KeyError, ValueError, TypeError) as error:
