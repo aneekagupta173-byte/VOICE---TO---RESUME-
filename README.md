@@ -20,7 +20,7 @@ BUILD MODE
 Voice (per section) ──► faster-whisper (local STT) ──► raw transcript
                                                               │
                                                               ▼
-                                            Groq API (LLM, free tier)
+                                            Gemini API (free tier)
                                      structures rambling speech into
                                      clean résumé text per section
                                                               │
@@ -42,7 +42,7 @@ Uploaded résumé (.docx/.pdf/.txt) ──► text extraction (python-docx / pyp
         or résumé just built  ─┘
                     │
                     ▼
-          Groq API (LLM, free tier)
+          Gemini API (free tier)
    generates roast lines, each paired
         with a real, actionable fix
                     │
@@ -56,13 +56,13 @@ roast badge image      reads the roast aloud
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env      # add your free GROQ_API_KEY from console.groq.com/keys
+cp .env.example .env      # add your free GEMINI_API_KEY from aistudio.google.com/apikey
 streamlit run app.py
 ```
 
 First run downloads the Whisper `base` model (~140MB) once, then STT runs
 fully offline. TTS and the header image both call free, keyless public
-endpoints — only the LLM structuring step needs your Groq key, and Groq's
+endpoints — only the LLM structuring step needs your Gemini key, and Gemini's
 free tier costs nothing to use for a project at this scale.
 
 ### Streamlit Cloud
@@ -70,7 +70,7 @@ free tier costs nothing to use for a project at this scale.
 Add this to the app's Secrets section under **Manage app > Settings > Secrets**:
 
 ```toml
-GROQ_API_KEY = "your-new-groq-api-key"
+GEMINI_API_KEY = "your-gemini-api-key"
 ```
 
 After changing the secret, reboot the app. The local `.env` file is not used by
@@ -85,8 +85,8 @@ voice_resume_builder/
 ├── .env.example
 └── modules/
     ├── audio_utils.py      # faster-whisper STT + edge-tts TTS
-    ├── llm_engine.py       # structures rough speech into résumé text (Groq)
-    ├── roast_engine.py     # extracts résumé text + generates the roast (Groq)
+    ├── llm_engine.py       # structures rough speech into résumé text (Gemini)
+    ├── roast_engine.py     # extracts résumé text + generates the roast (Gemini)
     ├── image_gen.py        # free header banner + roast badge (Pollinations.ai)
     └── resume_builder.py   # renders the structured résumé into a .docx
 ```

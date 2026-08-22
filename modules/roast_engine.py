@@ -5,8 +5,8 @@ The "Roast My Résumé" feature: extracts plain text from an uploaded résumé
 LLM for a funny-but-genuinely-useful critique — not just jokes, each roast
 line is paired with a real, actionable fix.
 
-IMPORTANT: this does NOT use Groq's strict response_format="json_object"
-mode. That mode makes Groq hard-reject the entire request (a 400 error)
+IMPORTANT: this does NOT use Gemini's strict JSON response mode
+ mode. That mode can reject the entire request (a 400 error)
 if the model's raw output isn't perfectly clean JSON — and free-tier
 models occasionally drift (wrong key names, or a stray sentence before
 the JSON). Instead we take whatever text comes back and parse it
@@ -173,36 +173,27 @@ Return EXACTLY:
     try:
         client = get_client()
 
-        resp = client.chat.completions.create(
+        response = client.models.generate_content(
             model=MODEL,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a resume reviewer. "
-                        "Return valid JSON only."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": prompt,
-                },
-            ],
-            temperature=0.3,
-            max_tokens=900,
+            contents=prompt,
+            config={
+                "system_instruction": "You are a resume reviewer. Return valid JSON only.",
+                "temperature": 0.3,
+                "max_output_tokens": 900,
+            },
         )
 
-        raw = resp.choices[0].message.content
+        raw = response.text
 
         if not raw:
-            raise ValueError("Groq returned an empty response.")
+            raise ValueError("Gemini returned an empty response.")
 
         data = _extract_json_object(raw)
 
         return _normalize_roast(data)
 
     except Exception as e:
-        print(f"Groq roast error: {type(e).__name__}: {e}")
+        print(f"Gemini roast error: {type(e).__name__}: {e}")
         raise
 
 
@@ -226,7 +217,7 @@ def generate_roast_with_retry(
             last_error = e
 
     raise RuntimeError(
-        f"Groq Roast failed | "
+        f"Gemini Roast failed | "
         f"Type={type(last_error).__name__} | "
         f"Error={str(last_error)} | "
         f"Model={MODEL}"

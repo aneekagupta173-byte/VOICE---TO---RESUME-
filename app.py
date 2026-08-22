@@ -7,7 +7,7 @@ Two modes, chosen at the start:
   BUILD  1. Basic info (name, contact, target role) — typed, short/exact
          2. Speak each section (Summary, Experience, Education, Skills) ->
             transcribed locally (faster-whisper) -> structured by an LLM
-            call (Groq, free)
+             call (Gemini, free tier)
          3. A header banner image is generated matching the target role
             (Pollinations.ai, free, no key)
          4. Preview, hear a spoken confirmation (edge-tts), download .docx
@@ -25,7 +25,6 @@ from pathlib import Path
 
 import streamlit as st
 from dotenv import load_dotenv
-from groq import GroqError
 
 from modules import audio_utils, llm_engine, image_gen, resume_builder, roast_engine, history
 
@@ -76,17 +75,17 @@ st.caption("Speak your work history into a polished résumé — or upload one "
            "and get it roasted.")
 render_back_to_home()
 
-def _has_groq_key() -> bool:
-    if os.environ.get("GROQ_API_KEY"):
+def _has_gemini_key() -> bool:
+    if os.environ.get("GEMINI_API_KEY"):
         return True
     try:
-        return bool(st.secrets.get("GROQ_API_KEY"))
+        return bool(st.secrets.get("GEMINI_API_KEY"))
     except Exception:
         return False
 
 
-if not _has_groq_key():
-    st.warning("GROQ_API_KEY not set — get a free key at console.groq.com/keys and "
+if not _has_gemini_key():
+    st.warning("GEMINI_API_KEY not set — get a free key at aistudio.google.com/apikey and "
                "add it to your .env file before structuring sections.", icon="⚠️")
 
 # ---------------------------------------------------------------- STAGE 0: mode select
@@ -189,11 +188,7 @@ elif st.session_state.stage == "building":
             st.session_state.banner_bytes = image_gen.generate_header_banner(role)
     except RuntimeError as error:
         st.error(str(error))
-        st.info("For local runs, update .env. For Streamlit Cloud, update GROQ_API_KEY under Manage app > Settings > Secrets, then reboot the app.")
-        st.stop()
-    except GroqError:
-        st.error("Groq could not assemble the résumé. Check that your API key is active and that your account has access to the model.")
-        st.info("For local runs, update .env. For Streamlit Cloud, update GROQ_API_KEY under Manage app > Settings > Secrets, then reboot the app.")
+        st.info("For local runs, update .env. For Streamlit Cloud, update GEMINI_API_KEY under Manage app > Settings > Secrets, then reboot the app.")
         st.stop()
     except (KeyError, ValueError, TypeError) as error:
         st.error(f"The résumé response was not in the expected format: {error}")
@@ -305,10 +300,10 @@ elif st.session_state.stage == "roast_spice":
                 )
             except RuntimeError as error:
                 message = str(error)
-                if "GROQ_API_KEY not set" in message:
-                    st.error("Groq key is missing. Add GROQ_API_KEY in Manage app > Settings > Secrets, then reboot the app.")
+                if "GEMINI_API_KEY not set" in message:
+                    st.error("Gemini key is missing. Add GEMINI_API_KEY in Manage app > Settings > Secrets, then reboot the app.")
                 else:
-                    st.error("Groq rejected the roast request. Check that your key is active and that the Groq model is available, then try again.")
+                    st.error("Gemini rejected the roast request. Check that your key is active, then try again.")
                 st.stop()
             st.session_state.roast_card_bytes = image_gen.generate_roast_card(spice)
             speech_text = roast_engine.roast_to_speech_text(st.session_state.roast_result)

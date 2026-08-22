@@ -3,7 +3,7 @@ llm_engine.py
 The one external API call in the app: turning a rough, spoken transcript
 ("um, so I worked at, like, a coffee shop for two years, I basically ran
 the register and trained new people...") into clean, structured résumé
-text. Uses Groq's free API (OpenAI-compatible), no billing required.
+text. Uses Google's Gemini API, with a free tier available.
 
 Kept isolated in this file on purpose — swap providers by editing only
 this module.
@@ -12,56 +12,51 @@ this module.
 import json
 import os
 
-from groq import AuthenticationError, Groq
+from google import genai
+from google.genai import types
 import streamlit as st
 
-MODEL = "llama-3.3-70b-versatile"
+MODEL = "gemini-2.5-flash"
 
 _client = None
 
 
-def _get_groq_api_key() -> str | None:
-    api_key = os.environ.get("GROQ_API_KEY")
+def _get_gemini_api_key() -> str | None:
+    api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         try:
-            api_key = st.secrets["GROQ_API_KEY"]
+            api_key = st.secrets["GEMINI_API_KEY"]
         except (KeyError, FileNotFoundError):
             api_key = None
     return api_key.strip() if isinstance(api_key, str) and api_key.strip() else None
 
 
-def get_client() -> Groq:
+def get_client():
     global _client
     if _client is None:
-        api_key = _get_groq_api_key()
+        api_key = _get_gemini_api_key()
         if not api_key:
             raise RuntimeError(
-                "GROQ_API_KEY not set. Add it to Streamlit Cloud Secrets or your local .env "
-                "file. Get a key from https://console.groq.com/keys."
+                "GEMINI_API_KEY not set. Add it to Streamlit Cloud Secrets or your local .env "
+                "file. Get a key from https://aistudio.google.com/apikey."
             )
-        _client = Groq(api_key=api_key)
+        _client = genai.Client(api_key=api_key)
     return _client
-
-
-def _raise_authentication_error(error: AuthenticationError) -> None:
-    raise RuntimeError(
-        "Groq rejected GROQ_API_KEY. Revoke the exposed key, create a new key, "
-        "and update it in local .env or Streamlit Cloud Secrets."
-    ) from error
 
 
 def _call_json(prompt: str, max_tokens: int = 700) -> dict:
     client = get_client()
-    try:
-        resp = client.chat.completions.create(
-            model=MODEL,
-            max_tokens=max_tokens,
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"},
+    response = client.models.generate_content(
+        model=MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            max_output_tokens=max_tokens,
+            response_mime_type="application/json",
         )
-    except AuthenticationError as error:
-        _raise_authentication_error(error)
-    return json.loads(resp.choices[0].message.content.strip())
+    )
+    if not response.text:
+        raise ValueError("Gemini returned an empty response.")
+    return json.loads(response.text.strip())
 
 
 def structure_summary(transcript: str, target_role: str) -> str:
