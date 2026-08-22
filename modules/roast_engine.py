@@ -128,62 +128,82 @@ def _normalize_roast(data: dict) -> dict:
 
     return {"roast_lines": normalized, "overall": overall, "score": round(score, 1)}
 
-
 def generate_roast(resume_text: str, spice_level: str = "Medium") -> dict:
-    """
-    spice_level: "Mild" (gentle, mostly encouraging), "Medium" (witty, honest),
-    or "Well Done" (savage but still constructive underneath).
-    Returns {"roast_lines": [{"line": "...", "fix": "..."}], "overall": "..."}
-    """
     resume_text = _clean_text(resume_text)[:4000]
 
     tone_guide = {
         "Mild": "gentle, encouraging humor — tease lightly, mostly compliment",
         "Medium": "witty and honest, like a sharp friend giving real feedback",
-        "Well Done": "savage, comedy-roast energy — but never cruel or personal, "
-                     "always aimed at the résumé content, not the person",
+        "Well Done": "savage, comedy-roast energy — but never cruel or personal",
     }[spice_level]
 
-    prompt = f"""You are a comedy roast writer who also happens to be a genuinely
-excellent résumé reviewer. Roast the following résumé in a {tone_guide} style.
+    prompt = f"""
+You are an expert resume reviewer and comedy roast writer.
 
-Rules:
-- Give an honest overall résumé quality score from 0-10 (be a real critic —
-  don't default to a lazy 7/10 for everything; a rough draft should score
-  low, a genuinely strong résumé should score high).
-- Every roast line MUST be paired with a real, specific, actionable fix — the
-  humor is the hook, the fix is the actual value.
-- Base every joke on something ACTUALLY in the résumé text below — never invent
-  details that aren't there.
-- Never insult the person themselves, their identity, or anything outside the
-  résumé content itself — keep it about the writing, formatting, and choices.
-- 4-6 roast lines total, plus one overall closing line that's encouraging.
-- Output ONLY the JSON object below. Do not repeat, quote, or reformat the
-  résumé text anywhere in your response. Do not add commentary before or
-  after the JSON.
+Review this resume with a {tone_guide} tone.
 
-Résumé text:
-\"\"\"{resume_text}\"\"\"
+IMPORTANT:
+- Only talk about information actually present in the resume.
+- Never insult the person.
+- Every roast must include an actionable improvement.
+- Give 4 to 6 roast points.
+- Give a score from 0 to 10.
+- Finish with one encouraging sentence.
+- Return ONLY valid JSON.
+- Do NOT use markdown.
+- Do NOT put JSON inside ```.
 
-Respond with EXACTLY this JSON shape and these exact key names, nothing else:
+Resume:
+{resume_text}
+
+Return EXACTLY:
+
 {{
-  "score": <number 0-10>,
-  "roast_lines": [{{"line": "<funny observation>", "fix": "<specific actionable fix>"}}],
-  "overall": "<one encouraging closing sentence>"
-}}"""
+  "score": 7.5,
+  "roast_lines": [
+    {{
+      "line": "funny observation about the resume",
+      "fix": "specific actionable improvement"
+    }}
+  ],
+  "overall": "encouraging closing sentence"
+}}
+"""
 
-    resp = get_client().chat.completions.create(
-        model=MODEL,
-        max_tokens=900,
-        temperature=0.5,
-        messages=[{"role": "user", "content": prompt}],
-        # NOTE: intentionally NOT using response_format="json_object" here —
-        # that mode makes Groq hard-reject the whole request on any drift,
-        # instead of giving us text we could still parse.
-    )
-    raw = resp.choices[0].message.content.strip()
-    data = _extract_json_object(raw)
-    return _normalize_roast(data)
+    try:
+        client = get_client()
+
+        resp = client.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a resume reviewer. "
+                        "Return valid JSON only."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            ],
+            temperature=0.3,
+            max_tokens=900,
+        )
+
+        raw = resp.choices[0].message.content
+
+        if not raw:
+            raise ValueError("Groq returned an empty response.")
+
+        data = _extract_json_object(raw)
+
+        return _normalize_roast(data)
+
+    except Exception as e:
+        print(f"Groq roast error: {type(e).__name__}: {e}")
+        raise
 
 
 def generate_roast_with_retry(resume_text: str, spice_level: str = "Medium", attempts: int = 3) -> dict:
