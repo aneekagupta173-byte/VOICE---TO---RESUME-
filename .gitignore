@@ -2,5 +2,5 @@
 .streamlit/secrets.toml
 __pycache__/
 *.pyc
-interview_history.db
+roast_history.db
 .DS_Store
