@@ -25,10 +25,11 @@ from pathlib import Path
 
 import streamlit as st
 from dotenv import load_dotenv
+from groq import GroqError
 
 from modules import audio_utils, llm_engine, image_gen, resume_builder, roast_engine, history
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 st.set_page_config(page_title="Voice Résumé Builder", page_icon="🎙️", layout="centered")
 history.init_db()
@@ -171,20 +172,29 @@ elif st.session_state.stage == "building":
     role = st.session_state.resume.get("target_role", "")
     t = st.session_state.transcripts
 
-    with st.spinner("Writing your summary..."):
-        st.session_state.resume["summary"] = llm_engine.structure_summary(t["summary"], role)
+    try:
+        with st.spinner("Writing your summary..."):
+            st.session_state.resume["summary"] = llm_engine.structure_summary(t["summary"], role)
 
-    with st.spinner("Structuring your experience..."):
-        st.session_state.resume["experience"] = llm_engine.structure_experience(t["experience"])
+        with st.spinner("Structuring your experience..."):
+            st.session_state.resume["experience"] = llm_engine.structure_experience(t["experience"])
 
-    with st.spinner("Structuring your education..."):
-        st.session_state.resume["education"] = llm_engine.structure_education(t["education"])
+        with st.spinner("Structuring your education..."):
+            st.session_state.resume["education"] = llm_engine.structure_education(t["education"])
 
-    with st.spinner("Extracting your skills..."):
-        st.session_state.resume["skills"] = llm_engine.structure_skills(t["skills"])
+        with st.spinner("Extracting your skills..."):
+            st.session_state.resume["skills"] = llm_engine.structure_skills(t["skills"])
 
-    with st.spinner("Generating a header banner..."):
-        st.session_state.banner_bytes = image_gen.generate_header_banner(role)
+        with st.spinner("Generating a header banner..."):
+            st.session_state.banner_bytes = image_gen.generate_header_banner(role)
+    except GroqError as error:
+        st.error("Groq could not assemble the résumé. Your GROQ_API_KEY is invalid or expired.")
+        st.info("Update the key in your .env file, then restart Streamlit and try again.")
+        st.stop()
+    except (KeyError, ValueError, TypeError) as error:
+        st.error(f"The résumé response was not in the expected format: {error}")
+        st.info("Please try building the résumé again after checking that each section has a transcript.")
+        st.stop()
 
     st.session_state.stage = "review"
     st.rerun()
