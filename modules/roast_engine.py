@@ -206,19 +206,30 @@ Return EXACTLY:
         raise
 
 
-def generate_roast_with_retry(resume_text: str, spice_level: str = "Medium", attempts: int = 3) -> dict:
-    """Retries a couple of times if parsing fails, since a fresh call usually succeeds."""
+def generate_roast_with_retry(
+    resume_text: str,
+    spice_level: str = "Medium",
+    attempts: int = 3
+) -> dict:
+
     last_error = None
+
     for _ in range(attempts):
         try:
             result = generate_roast(resume_text, spice_level)
+
             if result["roast_lines"]:
                 return result
+
         except Exception as e:
             last_error = e
-    if last_error:
-        raise last_error
-    raise ValueError("Could not generate a roast after several attempts — try again.")
+
+    raise RuntimeError(
+        f"Groq Roast failed.\n\n"
+        f"Error type: {type(last_error).__name__}\n"
+        f"Error: {last_error}\n"
+        f"Model being used: {MODEL}"
+    ) from last_error
 
 
 def roast_to_speech_text(roast: dict) -> str:
