@@ -223,13 +223,12 @@ def generate_roast_with_retry(
 
         except Exception as e:
             last_error = e
-
-    raise RuntimeError(
-        f"Groq Roast failed.\n\n"
-        f"Error type: {type(last_error).__name__}\n"
-        f"Error: {last_error}\n"
-        f"Model being used: {MODEL}"
-    ) from last_error
+raise RuntimeError(
+    f"Groq Roast failed | "
+    f"Type={type(last_error).__name__} | "
+    f"Error={str(last_error)} | "
+    f"Model={MODEL}"
+) from last_error
 
 
 def roast_to_speech_text(roast: dict) -> str:
