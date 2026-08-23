@@ -20,7 +20,7 @@ BUILD MODE
 Voice (per section) ──► faster-whisper (local STT) ──► raw transcript
                                                               │
                                                               ▼
-                                            OpenAI API (JSON mode)
+                                            Gemini API (JSON mode)
                                      structures rambling speech into
                                      clean résumé text per section
                                                               │
@@ -42,7 +42,7 @@ Uploaded résumé (.docx/.pdf/.txt) ──► text extraction (python-docx / pyp
         or résumé just built  ─┘
                     │
                     ▼
-          OpenAI API (JSON mode)
+          Gemini API (JSON mode)
    generates roast lines, each paired
         with a real, actionable fix
                     │
@@ -62,19 +62,19 @@ streamlit run app.py
 Before starting the app, create `.streamlit/secrets.toml` and add your key:
 
 ```toml
-OPENAI_API_KEY = "your-openai-api-key"
+GEMINI_API_KEY = "your-gemini-api-key"
 ```
 
 First run downloads the Whisper `base` model (~140MB) once, then STT runs
 fully offline. TTS and the header image both call free, keyless public
-endpoints — only the LLM structuring and roast steps need your OpenAI key.
+endpoints — only the LLM structuring and roast steps need your Gemini key.
 
 ### Streamlit Cloud
 
 Add this to the app's Secrets section under **Manage app > Settings > Secrets**:
 
 ```toml
-OPENAI_API_KEY = "your-openai-api-key"
+GEMINI_API_KEY = "your-gemini-api-key"
 ```
 
 After changing the secret, reboot the app. The application reads the key only

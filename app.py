@@ -7,7 +7,7 @@ Two modes, chosen at the start:
   BUILD  1. Basic info (name, contact, target role) — typed, short/exact
          2. Speak each section (Summary, Experience, Education, Skills) ->
             transcribed locally (faster-whisper) -> structured by an LLM
-             call (OpenAI, JSON mode)
+             call (Gemini, JSON mode)
          3. A header banner image is generated matching the target role
             (Pollinations.ai, free, no key)
          4. Preview, hear a spoken confirmation (edge-tts), download .docx
