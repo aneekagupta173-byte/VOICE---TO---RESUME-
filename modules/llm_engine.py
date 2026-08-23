@@ -11,6 +11,8 @@ this module.
 
 import json
 import re
+from collections.abc import Mapping
+from typing import Any
 
 from google import genai
 from google.genai import types
@@ -71,28 +73,29 @@ SKILLS_SCHEMA = {
 }
 
 
-def _parse_json_object(raw: str) -> dict:
-    """Parse a JSON object even when the model adds a code fence or prose."""
+def _parse_json_value(raw: str) -> Any:
+    """Parse JSON even when Gemini adds a code fence or surrounding prose."""
     cleaned = raw.strip().replace("```json", "").replace("```", "").strip()
     decoder = json.JSONDecoder()
 
     for start, character in enumerate(cleaned):
-        if character != "{":
+        if character not in "[{":
             continue
         try:
             data, _ = decoder.raw_decode(cleaned[start:])
         except json.JSONDecodeError:
+            closing = "]" if character == "[" else "}"
             candidate = cleaned[start:]
-            candidate = candidate[:candidate.rfind("}") + 1]
+            candidate = candidate[:candidate.rfind(closing) + 1]
             candidate = re.sub(r",\s*([}\]])", r"\1", candidate)
             try:
                 data = json.loads(candidate)
             except json.JSONDecodeError:
                 continue
-        if isinstance(data, dict):
+        if isinstance(data, (dict, list)):
             return data
 
-    raise ValueError("Gemini returned no valid JSON object.")
+    raise ValueError("Gemini returned no valid JSON value.")
 
 
 def _get_gemini_api_key() -> str | None:
@@ -116,7 +119,12 @@ def get_client():
     return _client
 
 
-def _call_json(prompt: str, response_schema: dict, max_tokens: int = 700) -> dict:
+def _call_json(
+    prompt: str,
+    response_schema: dict,
+    response_name: str,
+    max_tokens: int = 700,
+) -> dict:
     client = get_client()
     chat = client.chats.create(
         model=MODEL,
@@ -129,11 +137,19 @@ def _call_json(prompt: str, response_schema: dict, max_tokens: int = 700) -> dic
     response = chat.send_message(prompt)
     if not response.text:
         raise ValueError("Gemini returned an empty response.")
-    print(f"Gemini JSON response: {response.text!r}", flush=True)
+    print(f"Gemini {response_name} JSON response: {response.text!r}", flush=True)
     st.code(response.text, language="json")
-    if isinstance(response.parsed, dict):
-        return response.parsed
-    return _parse_json_object(response.text)
+    if isinstance(response.parsed, Mapping):
+        return dict(response.parsed)
+    if response_name == "skills" and isinstance(response.parsed, list):
+        return {"skills": response.parsed}
+
+    parsed = _parse_json_value(response.text)
+    if isinstance(parsed, dict):
+        return parsed
+    if response_name == "skills" and isinstance(parsed, list):
+        return {"skills": parsed}
+    raise ValueError(f"Gemini returned the wrong JSON shape for {response_name}.")
 
 
 def structure_summary(transcript: str, target_role: str) -> str:
@@ -151,7 +167,7 @@ Spoken notes begin:
 Spoken notes end.
 
 Respond ONLY with JSON: {{"summary": "..."}}"""
-    return _call_json(prompt, SUMMARY_SCHEMA)["summary"]
+    return _call_json(prompt, SUMMARY_SCHEMA, "summary")["summary"]
 
 
 def structure_experience(transcript: str) -> list[dict]:
@@ -170,7 +186,7 @@ Work-history notes end.
 
 Respond ONLY with JSON: {{"experience": [{{"title": "...", "company": "...",
 "duration": "...", "bullets": ["...", "..."]}}]}}"""
-    return _call_json(prompt, EXPERIENCE_SCHEMA, max_tokens=900)["experience"]
+    return _call_json(prompt, EXPERIENCE_SCHEMA, "experience", max_tokens=900)["experience"]
 
 
 def structure_education(transcript: str) -> list[dict]:
@@ -187,7 +203,7 @@ Education notes end.
 
 Respond ONLY with JSON: {{"education": [{{"degree": "...", "institution": "...",
 "year": "..."}}]}}"""
-    return _call_json(prompt, EDUCATION_SCHEMA)["education"]
+    return _call_json(prompt, EDUCATION_SCHEMA, "education")["education"]
 
 
 def structure_skills(transcript: str) -> list[str]:
@@ -203,7 +219,7 @@ Skills notes begin:
 Skills notes end.
 
 Respond ONLY with JSON: {{"skills": ["...", "..."]}}"""
-    return _call_json(prompt, SKILLS_SCHEMA)["skills"]
+    return _call_json(prompt, SKILLS_SCHEMA, "skills")["skills"]
 
 
 def generate_confirmation_summary(resume: dict) -> str:
@@ -217,4 +233,4 @@ were captured, and one standout bullet point. Plain text only, ready to be
 read aloud by a text-to-speech engine, no markdown.Also mention, what can be changed and added to be better into the resume. 
 
 Respond ONLY with JSON: {{"summary": "..."}}"""
-    return _call_json(prompt, SUMMARY_SCHEMA)["summary"]
+    return _call_json(prompt, SUMMARY_SCHEMA, "confirmation")["summary"]
