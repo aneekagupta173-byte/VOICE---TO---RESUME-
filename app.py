@@ -90,13 +90,13 @@ if st.session_state.stage == "mode_select":
     with col1:
         st.markdown("### 🛠️ Build a résumé")
         st.caption("Speak your work history and get a polished, downloadable résumé.")
-        if st.button("Build my résumé →", type="primary", use_container_width=True):
+        if st.button("Build my résumé →", type="primary", width="stretch"):
             st.session_state.stage = "basics"
             st.rerun()
     with col2:
         st.markdown("### 🔥 Roast my résumé")
         st.caption("Upload an existing résumé and get a witty, honest critique.")
-        if st.button("Roast my résumé →", use_container_width=True):
+        if st.button("Roast my résumé →", width="stretch"):
             st.session_state.stage = "roast_upload"
             st.rerun()
 
@@ -202,7 +202,7 @@ elif st.session_state.stage == "review":
     resume = st.session_state.resume
 
     if st.session_state.banner_bytes:
-        st.image(st.session_state.banner_bytes, use_container_width=True)
+        st.image(st.session_state.banner_bytes, width="stretch")
 
     st.header(resume.get("name", ""))
     contact_line = " | ".join(x for x in [resume.get("email"), resume.get("phone"),
@@ -368,7 +368,7 @@ elif st.session_state.stage == "roast_result":
                 "reviewed": st.column_config.CheckboxColumn("Fixed it?"),
             },
             hide_index=True,
-            use_container_width=True,
+            width="stretch",
             key="roast_history_editor",
         )
 

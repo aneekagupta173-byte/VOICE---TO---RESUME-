@@ -16,7 +16,6 @@ from typing import Any
 
 from docx import Document
 from google.genai import types
-from json_repair import repair_json
 from pypdf import PdfReader
 import streamlit as st
 
@@ -75,20 +74,20 @@ def _extract_json_object(raw: str) -> dict:
     raw = raw.strip().replace("```json", "").replace("```", "").strip()
     decoder = json.JSONDecoder()
 
-    try:
-        data = repair_json(raw, return_objects=True)
-        if isinstance(data, dict):
-            return data
-    except (TypeError, ValueError):
-        pass
-
     for start, character in enumerate(raw):
         if character != "{":
             continue
         try:
             data, _ = decoder.raw_decode(raw[start:])
         except json.JSONDecodeError:
-            continue
+            candidate = re.match(r"\{.*\}", raw[start:], re.DOTALL)
+            if not candidate:
+                continue
+            repaired = re.sub(r",\s*([}\]])", r"\1", candidate.group())
+            try:
+                data = json.loads(repaired)
+            except json.JSONDecodeError:
+                continue
         if isinstance(data, dict):
             return data
 
