@@ -20,6 +20,24 @@ MODEL = "gemini-3.6-flash"
 _client = None
 
 
+def _parse_json_object(raw: str) -> dict:
+    """Parse a JSON object even when the model adds a code fence or prose."""
+    cleaned = raw.strip().replace("```json", "").replace("```", "").strip()
+    decoder = json.JSONDecoder()
+
+    for start, character in enumerate(cleaned):
+        if character != "{":
+            continue
+        try:
+            data, _ = decoder.raw_decode(cleaned[start:])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(data, dict):
+            return data
+
+    raise ValueError("Gemini returned no valid JSON object.")
+
+
 def _get_gemini_api_key() -> str | None:
     try:
         api_key = st.secrets.get("GEMINI_API_KEY")
@@ -53,7 +71,9 @@ def _call_json(prompt: str, max_tokens: int = 700) -> dict:
     )
     if not response.text:
         raise ValueError("Gemini returned an empty response.")
-    return json.loads(response.text.strip())
+    print(f"Gemini JSON response: {response.text!r}", flush=True)
+    st.code(response.text, language="json")
+    return _parse_json_object(response.text)
 
 
 def structure_summary(transcript: str, target_role: str) -> str:

@@ -17,6 +17,7 @@ from typing import Any
 from docx import Document
 from google.genai import types
 from pypdf import PdfReader
+import streamlit as st
 
 from modules.llm_engine import get_client, MODEL
 
@@ -188,6 +189,7 @@ Return EXACTLY:
         if not raw:
             raise ValueError("Gemini returned an empty response.")
 
+        st.code(raw, language="json")
         data = _extract_json_object(raw)
 
         return _normalize_roast(data)
