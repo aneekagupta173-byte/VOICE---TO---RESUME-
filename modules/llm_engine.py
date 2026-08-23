@@ -19,6 +19,56 @@ MODEL = "gemini-3.6-flash"
 
 _client = None
 
+SUMMARY_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {"summary": {"type": "STRING"}},
+    "required": ["summary"],
+}
+EXPERIENCE_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "experience": {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "title": {"type": "STRING"},
+                    "company": {"type": "STRING"},
+                    "duration": {"type": "STRING"},
+                    "bullets": {"type": "ARRAY", "items": {"type": "STRING"}},
+                },
+                "required": ["title", "company", "duration", "bullets"],
+            },
+        },
+    },
+    "required": ["experience"],
+}
+EDUCATION_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "education": {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "degree": {"type": "STRING"},
+                    "institution": {"type": "STRING"},
+                    "year": {"type": "STRING"},
+                },
+                "required": ["degree", "institution", "year"],
+            },
+        },
+    },
+    "required": ["education"],
+}
+SKILLS_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "skills": {"type": "ARRAY", "items": {"type": "STRING"}},
+    },
+    "required": ["skills"],
+}
+
 
 def _parse_json_object(raw: str) -> dict:
     """Parse a JSON object even when the model adds a code fence or prose."""
@@ -59,13 +109,14 @@ def get_client():
     return _client
 
 
-def _call_json(prompt: str, max_tokens: int = 700) -> dict:
+def _call_json(prompt: str, response_schema: dict, max_tokens: int = 700) -> dict:
     client = get_client()
     chat = client.chats.create(
         model=MODEL,
         config=types.GenerateContentConfig(
             max_output_tokens=max_tokens,
             response_mime_type="application/json",
+            response_schema=response_schema,
         ),
     )
     response = chat.send_message(prompt)
@@ -91,7 +142,7 @@ Spoken notes begin:
 Spoken notes end.
 
 Respond ONLY with JSON: {{"summary": "..."}}"""
-    return _call_json(prompt)["summary"]
+    return _call_json(prompt, SUMMARY_SCHEMA)["summary"]
 
 
 def structure_experience(transcript: str) -> list[dict]:
@@ -110,7 +161,7 @@ Work-history notes end.
 
 Respond ONLY with JSON: {{"experience": [{{"title": "...", "company": "...",
 "duration": "...", "bullets": ["...", "..."]}}]}}"""
-    return _call_json(prompt, max_tokens=900)["experience"]
+    return _call_json(prompt, EXPERIENCE_SCHEMA, max_tokens=900)["experience"]
 
 
 def structure_education(transcript: str) -> list[dict]:
@@ -127,7 +178,7 @@ Education notes end.
 
 Respond ONLY with JSON: {{"education": [{{"degree": "...", "institution": "...",
 "year": "..."}}]}}"""
-    return _call_json(prompt)["education"]
+    return _call_json(prompt, EDUCATION_SCHEMA)["education"]
 
 
 def structure_skills(transcript: str) -> list[str]:
@@ -143,7 +194,7 @@ Skills notes begin:
 Skills notes end.
 
 Respond ONLY with JSON: {{"skills": ["...", "..."]}}"""
-    return _call_json(prompt)["skills"]
+    return _call_json(prompt, SKILLS_SCHEMA)["skills"]
 
 
 def generate_confirmation_summary(resume: dict) -> str:
@@ -157,4 +208,4 @@ were captured, and one standout bullet point. Plain text only, ready to be
 read aloud by a text-to-speech engine, no markdown.Also mention, what can be changed and added to be better into the resume. 
 
 Respond ONLY with JSON: {{"summary": "..."}}"""
-    return _call_json(prompt)["summary"]
+    return _call_json(prompt, SUMMARY_SCHEMA)["summary"]
