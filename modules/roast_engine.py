@@ -18,8 +18,10 @@ crashing the app.
 import io
 import json
 import re
+from typing import Any
 
 from docx import Document
+from google.genai import types
 from pypdf import PdfReader
 
 from modules.llm_engine import get_client, MODEL
@@ -74,27 +76,19 @@ def _extract_json_object(raw: str) -> dict:
     cleaner attempt) when one is present, then scans for the first balanced
     {...} block and parses it.
     """
-    raw = raw.strip()
-    if "```json" in raw:
-        raw = raw.split("```json")[-1]
-    raw = raw.replace("```", "").strip()
+    raw = raw.strip().replace("```json", "").replace("```", "").strip()
+    decoder = json.JSONDecoder()
 
-    start = raw.find("{")
-    if start == -1:
-        raise ValueError("No JSON object found in model output.")
+    for start, character in enumerate(raw):
+        if character != "{":
+            continue
+        try:
+            data, _ = decoder.raw_decode(raw[start:])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(data, dict):
+            return data
 
-    depth = 0
-    for i in range(start, len(raw)):
-        if raw[i] == "{":
-            depth += 1
-        elif raw[i] == "}":
-            depth -= 1
-            if depth == 0:
-                candidate = raw[start:i + 1]
-                try:
-                    return json.loads(candidate)
-                except json.JSONDecodeError:
-                    continue
     raise ValueError("Could not parse a valid JSON object from model output.")
 
 
@@ -106,6 +100,8 @@ def _normalize_roast(data: dict) -> dict:
     the one shape the rest of the app expects.
     """
     raw_lines = data.get("roast_lines") or data.get("roasts") or data.get("roast") or []
+    if not isinstance(raw_lines, list):
+        raw_lines = []
     normalized = []
     for item in raw_lines:
         if not isinstance(item, dict):
@@ -113,12 +109,16 @@ def _normalize_roast(data: dict) -> dict:
         line = item.get("line") or item.get("roast") or item.get("joke") or ""
         fix = item.get("fix") or item.get("suggestion") or item.get("improvement") or ""
         if line:
-            normalized.append({"line": line, "fix": fix})
+            normalized.append({"line": str(line), "fix": str(fix)})
 
     overall = data.get("overall") or data.get("closing") or data.get("summary") or ""
+    if not isinstance(overall, str):
+        overall = str(overall)
 
-    raw_score = data.get("score")
+    raw_score: Any = data.get("score")
     try:
+        if not isinstance(raw_score, (int, float, str)):
+            raise TypeError("score must be numeric")
         score = float(raw_score)
         score = max(0.0, min(10.0, score))  # clamp into 0-10 range
     except (TypeError, ValueError):
@@ -180,11 +180,12 @@ Return EXACTLY:
         response = client.models.generate_content(
             model=MODEL,
             contents=prompt,
-            config={
-                "system_instruction": "You are a resume reviewer. Return valid JSON only.",
-                "temperature": 0.3,
-                "max_output_tokens": 900,
-            },
+            config=types.GenerateContentConfig(
+                system_instruction="Return only a valid JSON object matching the requested shape.",
+                temperature=0.3,
+                max_output_tokens=900,
+                response_mime_type="application/json",
+            ),
         )
 
         raw = response.text
