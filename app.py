@@ -302,7 +302,7 @@ elif st.session_state.stage == "roast_spice":
                 if "GEMINI_API_KEY not set" in message:
                     st.error("Gemini key is missing. Add GEMINI_API_KEY in Manage app > Settings > Secrets, then reboot the app.")
                 else:
-                    st.error("Gemini rejected the roast request. Check that your key is active, then try again.")
+                    st.error("Unable to generate the roast. Check your API key and quota, then try again.")
                 st.stop()
             st.session_state.roast_card_bytes = image_gen.generate_roast_card(spice)
             speech_text = roast_engine.roast_to_speech_text(st.session_state.roast_result)
