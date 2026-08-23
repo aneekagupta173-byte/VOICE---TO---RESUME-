@@ -111,6 +111,14 @@ if not _has_gemini_key():
 # ---------------------------------------------------------------- STAGE 0: mode select
 if st.session_state.stage == "mode_select":
     st.subheader("What do you want to do?")
+    with st.expander("New here? Start with these steps", expanded=True):
+        st.markdown(
+            "1. Choose **Build a résumé** to create one by speaking, or "
+            "**Roast my résumé** to review an existing file.\n"
+            "2. For building, enter your name, email, and target role.\n"
+            "3. Record each section, then select **Transcribe this section**.\n"
+            "4. Review the generated content before downloading your `.docx` résumé."
+        )
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("### 🛠️ Build a résumé")
@@ -128,6 +136,7 @@ if st.session_state.stage == "mode_select":
 # ---------------------------------------------------------------- STAGE 1: basics
 elif st.session_state.stage == "basics":
     st.subheader("Basic info")
+    st.caption("Enter the required fields below. Your target role helps shape the résumé language.")
     with st.form("basics_form", border=True):
         name = st.text_input("Full name")
         col1, col2 = st.columns(2)
@@ -154,6 +163,11 @@ elif st.session_state.stage == "basics":
 elif st.session_state.stage == "sections":
     st.subheader("Speak each section")
     st.caption(f"Target role: **{st.session_state.resume.get('target_role')}**")
+    st.info(
+        "Record one section at a time. Speak naturally for about 20–60 seconds, "
+        "mention specific names, dates, responsibilities, tools, and achievements, "
+        "then click **Transcribe this section**. Check the transcript before continuing."
+    )
 
     for key, label, prompt in SECTIONS:
         done = key in st.session_state.transcripts
@@ -309,6 +323,11 @@ elif st.session_state.stage == "review":
 elif st.session_state.stage == "roast_upload":
     st.subheader("🔥 Roast my résumé")
     st.caption("Upload a résumé and pick how spicy you want the feedback.")
+    st.info(
+        "Upload a `.docx`, `.pdf`, or `.txt` file. The app extracts its text and "
+        "reviews only the résumé content. Remove private information you do not "
+        "want sent to Gemini before uploading."
+    )
 
     with st.form("roast_upload_form", border=True):
         uploaded = st.file_uploader("Upload your résumé", type=["docx", "pdf", "txt"])
