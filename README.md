@@ -1,135 +1,118 @@
-# Voice Résumé Builder + Roaster 🎙️🔥
+# Voice Resume Builder + Roaster
 
-Two modes in one app:
+A Streamlit application that turns spoken work history into a downloadable
+resume, or reviews an existing resume with constructive, actionable feedback.
 
-- **Build**: speak your work history out loud, section by section — no
-  forms — and get a polished, downloadable résumé (.docx) with a matching
-  header banner and a spoken confirmation of what was captured.
-- **Roast**: upload an existing résumé (or roast the one you just built)
-  and get a witty, honest critique — every joke is paired with a real,
-  actionable fix, read aloud, with a shareable roast badge image.
+## Features
 
-## Why this is a good capstone scope
+### Build a resume
 
-Every required technology has one clear job, and both flows are single
-straight lines (no branching state machine, no live camera feed), which
-makes it fast to build and reliable to demo:
+1. Enter basic contact information and a target role.
+2. Record Summary, Experience, Education, and Skills sections.
+3. Transcribe each recording locally with `faster-whisper`.
+4. Send each transcript to Gemini for structured resume content.
+5. Review the generated resume, hear a spoken confirmation, and download a
+   `.docx` file.
 
-```
-BUILD MODE
-Voice (per section) ──► faster-whisper (local STT) ──► raw transcript
-                                                              │
-                                                              ▼
-                                            Gemini API (JSON mode)
-                                     structures rambling speech into
-                                     clean résumé text per section
-                                                              │
-                          ┌───────────────────────────────────┤
-                          ▼                                   ▼
-              Pollinations.ai (free image gen)        python-docx
-              header banner matching target role      renders final .docx
-                          │                                   │
-                          └───────────────┬───────────────────┘
-                                           ▼
-                                 Streamlit review page
-                                           │
-                                           ▼
-                              edge-tts (free TTS) reads back
-                              a spoken confirmation summary
+### Roast a resume
 
-ROAST MODE
-Uploaded résumé (.docx/.pdf/.txt) ──► text extraction (python-docx / pypdf)
-        or résumé just built  ─┘
-                    │
-                    ▼
-          Gemini API (JSON mode)
-   generates roast lines, each paired
-        with a real, actionable fix
-                    │
-        ┌───────────┴───────────┐
-        ▼                       ▼
-Pollinations.ai            edge-tts
-roast badge image      reads the roast aloud
-```
+Upload a `.docx`, `.pdf`, or `.txt` resume, or roast the resume created in the
+same session. Gemini returns a score, several observations, and a practical
+fix for every observation. The result can also be read aloud and rendered as
+an image card.
+
+## Technology
+
+- **Streamlit**: user interface and session state
+- **faster-whisper**: local speech-to-text
+- **Gemini `gemini-3.6-flash`**: resume structuring and feedback
+- **python-docx / pypdf**: resume file creation and text extraction
+- **edge-tts**: spoken confirmation and roast audio
+- **Pollinations.ai**: generated header and roast images
 
 ## Setup
 
-```bash
+Install the dependencies in the project virtual environment:
+
+```powershell
 pip install -r requirements.txt
+```
+
+Create `.streamlit/secrets.toml` locally, or add the same values under
+**Manage app > Settings > Secrets** in Streamlit Cloud:
+
+```toml
+GEMINI_API_KEY = "your-gemini-api-key"
+HF_TOKEN = "your-huggingface-read-token"
+```
+
+`GEMINI_API_KEY` is required for resume generation and roasting. `HF_TOKEN`
+is a read-only Hugging Face User Access Token used to improve Whisper model
+download limits. It is optional, but recommended.
+
+Run the app:
+
+```powershell
 streamlit run app.py
 ```
 
-Before starting the app, create `.streamlit/secrets.toml` and add your key:
+The application reads API keys from Streamlit Secrets only. It does not use
+`.env` files.
 
-```toml
-GEMINI_API_KEY = "your-gemini-api-key"
-HF_TOKEN = "your-huggingface-read-token"
-```
+## Session API key override
 
-First run downloads the Whisper `base` model (~140MB) once, then STT runs
-fully offline. TTS and the header image both call free, keyless public
-endpoints — only the LLM structuring and roast steps need your Gemini key.
+The sidebar contains a password-style **Gemini API key** field. A user can
+enter a temporary key there for the current session. The priority is:
 
-### Streamlit Cloud
+1. Sidebar key, when entered.
+2. `GEMINI_API_KEY` from Streamlit Secrets, when the sidebar is blank.
 
-Add this to the app's Secrets section under **Manage app > Settings > Secrets**:
+The sidebar key is held in Streamlit session state and is not written to the
+repository or persisted as application configuration.
 
-```toml
-GEMINI_API_KEY = "your-gemini-api-key"
-HF_TOKEN = "your-huggingface-read-token"
-```
+## JSON reliability
 
-After changing the secret, reboot the app. The application reads the key only
-from Streamlit Secrets; `.env` files are not used.
+Gemini requests use `application/json` response mode and explicit schemas for
+summary, experience, education, skills, and roast responses. The app also:
+
+- Uses Gemini's structured `response.parsed` value when available.
+- Handles harmless code fences, surrounding text, and trailing commas.
+- Retries incomplete or empty section responses once.
+- Rejects empty transcripts before sending them to Gemini.
+- Logs response sections, finish reasons, and token usage for troubleshooting.
 
 ## Project structure
 
-```
+```text
 voice_resume_builder/
-├── app.py                  # Streamlit UI: mode select → build or roast flow
-├── requirements.txt
-├── .streamlit/secrets.toml
+├── app.py                  # Streamlit UI and build/roast workflows
+├── requirements.txt        # Python dependencies
+├── .streamlit/
+│   └── secrets.toml.example # Secrets template; never add real keys here
 └── modules/
-    ├── audio_utils.py      # faster-whisper STT + edge-tts TTS
-    ├── llm_engine.py       # structures rough speech into résumé text (OpenAI)
-    ├── roast_engine.py     # extracts résumé text + generates the roast (OpenAI)
-    ├── image_gen.py        # free header banner + roast badge (Pollinations.ai)
-    └── resume_builder.py   # renders the structured résumé into a .docx
+    ├── audio_utils.py      # Whisper transcription and edge-tts audio
+    ├── llm_engine.py       # Gemini client, schemas, and resume generation
+    ├── roast_engine.py     # Resume extraction and Gemini roast generation
+    ├── image_gen.py        # Pollinations.ai image generation
+    ├── resume_builder.py   # Structured resume to .docx
+    └── history.py          # Local roast score history
 ```
 
-## Things worth mentioning in a capstone defense
+## Troubleshooting
 
-- **Every API call is isolated in its own module** — `llm_engine.py` and
-  `roast_engine.py` for reasoning, `image_gen.py` for visuals,
-  `audio_utils.py` for voice — so swapping any one provider only touches
-  one file.
-- **The roast is grounded, not generic**: the prompt explicitly requires
-  every joke to reference something actually in the résumé text and to be
-  paired with a real fix — this is what separates it from a novelty joke
-  generator and keeps it defensible as an actual feedback tool.
-- **Roasts target the writing, never the person**: the prompt explicitly
-  scopes humor to résumé content and formatting choices, not the
-  candidate — worth calling out directly if a panel asks about the
-  humor angle.
-- **Graceful degradation**: if the free image endpoint is ever down,
-  `generate_header_banner` returns `None` and the app just skips the
-  banner rather than crashing the whole résumé build — a small but real
-  system-design decision worth pointing out.
-- **The transcript is never thrown away** — each raw transcript is kept
-  in session state and shown next to the structured output, so a user
-  (or a panel) can see exactly what the LLM changed and verify nothing
-  was invented.
-- **Honest scope**: this doesn't try to be an ATS-optimization tool or a
-  design engine — it solves one specific, real friction point (typing out
-  a résumé from scratch is tedious; talking through your history isn't)
-  and does it well end to end.
+- **No speech detected**: record the section again and speak clearly near the
+  microphone. The Build button requires non-empty transcripts.
+- **Missing Gemini key**: add `GEMINI_API_KEY` to Streamlit Secrets or enter
+  a temporary key in the sidebar.
+- **Whisper download warning**: add a read-only `HF_TOKEN` to Streamlit
+  Secrets, then reboot the app.
+- **JSON or section error**: check Streamlit logs for the section name,
+  `finish_reason`, raw response, and token usage. Reboot after deploying code
+  or changing secrets.
 
-## Known limitations to be upfront about
+## Project scope
 
-- The LLM is instructed not to invent facts, but like any LLM it can
-  occasionally over-polish a bullet point — the review screen exists
-  specifically so nothing goes into the final download unchecked.
-- `.docx` styling is intentionally plain (no columns, no icons) so it
-  renders correctly in any version of Word — trading visual flair for
-  reliability, which is a reasonable, explainable choice for a résumé
-  document specifically.
+The app focuses on a clear workflow rather than ATS optimization or complex
+resume design. Users can review the generated content before downloading it,
+and the LLM is instructed to preserve stated facts instead of inventing
+qualifications or achievements.
