@@ -1,7 +1,13 @@
-# Voice Resume Builder + Roaster
+# Voice Résumé Builder + Roaster 🎙️🔥
 
-A Streamlit application that turns spoken work history into a downloadable
-resume, or reviews an existing resume with constructive, actionable feedback.
+Two modes in one app:
+
+- **Build**: speak your work history out loud, section by section — no
+  forms — and get a polished, downloadable résumé (.docx) with a matching
+  header banner and a spoken confirmation of what was captured.
+- **Roast**: upload an existing résumé (or roast the one you just built)
+  and get a witty, honest critique — every joke is paired with a real,
+  actionable fix, read aloud, with a shareable roast badge image.
 
 ## Features
 
