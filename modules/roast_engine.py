@@ -179,9 +179,8 @@ Return EXACTLY:
     try:
         client = get_client()
 
-        response = client.models.generate_content(
+        chat = client.chats.create(
             model=MODEL,
-            contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction="Return only valid JSON matching the requested shape.",
                 temperature=0.3,
@@ -189,6 +188,7 @@ Return EXACTLY:
                 response_mime_type="application/json",
             ),
         )
+        response = chat.send_message(prompt)
 
         raw = response.text
         print(f"Gemini roast API response: {raw!r}", flush=True)

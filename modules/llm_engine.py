@@ -61,14 +61,14 @@ def get_client():
 
 def _call_json(prompt: str, max_tokens: int = 700) -> dict:
     client = get_client()
-    response = client.models.generate_content(
+    chat = client.chats.create(
         model=MODEL,
-        contents=prompt,
         config=types.GenerateContentConfig(
             max_output_tokens=max_tokens,
             response_mime_type="application/json",
         ),
     )
+    response = chat.send_message(prompt)
     if not response.text:
         raise ValueError("Gemini returned an empty response.")
     print(f"Gemini JSON response: {response.text!r}", flush=True)
