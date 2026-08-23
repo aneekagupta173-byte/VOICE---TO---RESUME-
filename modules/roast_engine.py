@@ -5,7 +5,7 @@ The "Roast My Résumé" feature: extracts plain text from an uploaded résumé
 LLM for a funny-but-genuinely-useful critique — not just jokes, each roast
 line is paired with a real, actionable fix.
 
-The response is requested in OpenAI's JSON mode and normalized before it is
+The response is requested in Gemini's JSON mode and normalized before it is
 passed to the UI, so the app always receives one predictable shape.
 """
 
@@ -15,6 +15,7 @@ import re
 from typing import Any
 
 from docx import Document
+from google.genai import types
 from pypdf import PdfReader
 
 from modules.llm_engine import get_client, MODEL
@@ -170,28 +171,28 @@ Return EXACTLY:
     try:
         client = get_client()
 
-        response = client.chat.completions.create(
+        response = client.models.generate_content(
             model=MODEL,
-            messages=[
-                {"role": "system", "content": "Return only valid JSON matching the requested shape."},
-                {"role": "user", "content": prompt},
-            ],
-            response_format={"type": "json_object"},
-            temperature=0.3,
-            max_tokens=900,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction="Return only valid JSON matching the requested shape.",
+                temperature=0.3,
+                max_output_tokens=900,
+                response_mime_type="application/json",
+            ),
         )
 
-        raw = response.choices[0].message.content
+        raw = response.text
 
         if not raw:
-            raise ValueError("OpenAI returned an empty response.")
+            raise ValueError("Gemini returned an empty response.")
 
         data = _extract_json_object(raw)
 
         return _normalize_roast(data)
 
     except Exception as e:
-        print(f"OpenAI roast error: {type(e).__name__}: {e}")
+        print(f"Gemini roast error: {type(e).__name__}: {e}")
         raise
 
 
@@ -215,7 +216,7 @@ def generate_roast_with_retry(
             last_error = e
 
     raise RuntimeError(
-        f"OpenAI Roast failed | "
+        f"Gemini Roast failed | "
         f"Type={type(last_error).__name__} | "
         f"Error={str(last_error)} | "
         f"Model={MODEL}"

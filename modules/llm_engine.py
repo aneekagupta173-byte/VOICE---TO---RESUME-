@@ -3,7 +3,7 @@ llm_engine.py
 The one external API call in the app: turning a rough, spoken transcript
 ("um, so I worked at, like, a coffee shop for two years, I basically ran
 the register and trained new people...") into clean, structured résumé
-text. Uses OpenAI's API.
+text. Uses Google's Gemini API.
 
 Kept isolated in this file on purpose — swap providers by editing only
 this module.
@@ -11,50 +11,49 @@ this module.
 
 import json
 
-from openai import OpenAI
+from google import genai
+from google.genai import types
 import streamlit as st
 
-MODEL = "gpt-4o-mini"
+MODEL = "gemini-2.5-flash"
 
 _client = None
 
 
-def _get_openai_api_key() -> str | None:
+def _get_gemini_api_key() -> str | None:
     try:
-        api_key = st.secrets.get("OPENAI_API_KEY")
+        api_key = st.secrets.get("GEMINI_API_KEY")
     except (KeyError, FileNotFoundError):
         api_key = None
     return api_key.strip() if isinstance(api_key, str) and api_key.strip() else None
 
 
-def get_client() -> OpenAI:
+def get_client():
     global _client
     if _client is None:
-        api_key = _get_openai_api_key()
+        api_key = _get_gemini_api_key()
         if not api_key:
             raise RuntimeError(
-                "OPENAI_API_KEY not set. Add it to Streamlit Secrets. Get a key from "
-                "https://platform.openai.com/api-keys."
+                "GEMINI_API_KEY not set. Add it to Streamlit Secrets. Get a key from "
+                "https://aistudio.google.com/apikey."
             )
-        _client = OpenAI(api_key=api_key)
+        _client = genai.Client(api_key=api_key)
     return _client
 
 
 def _call_json(prompt: str, max_tokens: int = 700) -> dict:
     client = get_client()
-    response = client.chat.completions.create(
+    response = client.models.generate_content(
         model=MODEL,
-        messages=[
-            {"role": "system", "content": "Return only valid JSON."},
-            {"role": "user", "content": prompt},
-        ],
-        response_format={"type": "json_object"},
-        max_tokens=max_tokens,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            max_output_tokens=max_tokens,
+            response_mime_type="application/json",
+        ),
     )
-    content = response.choices[0].message.content
-    if not content:
-        raise ValueError("OpenAI returned an empty response.")
-    return json.loads(content)
+    if not response.text:
+        raise ValueError("Gemini returned an empty response.")
+    return json.loads(response.text.strip())
 
 
 def structure_summary(transcript: str, target_role: str) -> str:
