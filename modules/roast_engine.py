@@ -179,7 +179,7 @@ Résumé:
             config=types.GenerateContentConfig(
                 system_instruction="Return only valid JSON matching the requested shape.",
                 temperature=0.3,
-                max_output_tokens=1600,
+                max_output_tokens=1000,
                 response_mime_type="application/json",
                 response_schema=response_schema,
             ),
@@ -206,7 +206,7 @@ Résumé:
 def generate_roast_with_retry(
     resume_text: str,
     spice_level: str = "Medium",
-    attempts: int = 3
+    attempts: int = 2
 ) -> dict:
     """Retries if the roast generation fails."""
 

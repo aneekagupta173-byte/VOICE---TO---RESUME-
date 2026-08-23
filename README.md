@@ -86,6 +86,8 @@ summary, experience, education, skills, and roast responses. The app also:
 - Retries incomplete or empty section responses once.
 - Rejects empty transcripts before sending them to Gemini.
 - Logs response sections, finish reasons, and token usage for troubleshooting.
+- Uses smaller output limits for short sections and limits roast retries to two
+  attempts to reduce unnecessary token usage.
 
 ## Project structure
 

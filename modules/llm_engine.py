@@ -152,7 +152,7 @@ def _call_json(
     prompt: str,
     response_schema: dict,
     response_name: str,
-    max_tokens: int = 2048,
+    max_tokens: int = 800,
 ) -> dict:
     client = get_client()
     config = types.GenerateContentConfig(
@@ -224,7 +224,7 @@ Spoken notes begin:
 Spoken notes end.
 
 Respond ONLY with JSON: {{"summary": "..."}}"""
-    return _call_json(prompt, SUMMARY_SCHEMA, "summary")["summary"]
+    return _call_json(prompt, SUMMARY_SCHEMA, "summary", max_tokens=500)["summary"]
 
 
 def structure_experience(transcript: str) -> list[dict]:
@@ -243,7 +243,7 @@ Work-history notes end.
 
 Respond ONLY with JSON: {{"experience": [{{"title": "...", "company": "...",
 "duration": "...", "bullets": ["...", "..."]}}]}}"""
-    return _call_json(prompt, EXPERIENCE_SCHEMA, "experience")["experience"]
+    return _call_json(prompt, EXPERIENCE_SCHEMA, "experience", max_tokens=850)["experience"]
 
 
 def structure_education(transcript: str) -> list[dict]:
@@ -260,7 +260,7 @@ Education notes end.
 
 Respond ONLY with JSON: {{"education": [{{"degree": "...", "institution": "...",
 "year": "..."}}]}}"""
-    return _call_json(prompt, EDUCATION_SCHEMA, "education")["education"]
+    return _call_json(prompt, EDUCATION_SCHEMA, "education", max_tokens=450)["education"]
 
 
 def structure_skills(transcript: str) -> list[str]:
@@ -276,7 +276,7 @@ Skills notes begin:
 Skills notes end.
 
 Respond ONLY with JSON: {{"skills": ["...", "..."]}}"""
-    return _call_json(prompt, SKILLS_SCHEMA, "skills")["skills"]
+    return _call_json(prompt, SKILLS_SCHEMA, "skills", max_tokens=350)["skills"]
 
 
 def generate_confirmation_summary(resume: dict) -> str:
@@ -290,4 +290,4 @@ were captured, and one standout bullet point. Plain text only, ready to be
 read aloud by a text-to-speech engine, no markdown.Also mention, what can be changed and added to be better into the resume. 
 
 Respond ONLY with JSON: {{"summary": "..."}}"""
-    return _call_json(prompt, SUMMARY_SCHEMA, "confirmation")["summary"]
+    return _call_json(prompt, SUMMARY_SCHEMA, "confirmation", max_tokens=500)["summary"]

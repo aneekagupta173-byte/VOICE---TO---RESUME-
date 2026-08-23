@@ -37,6 +37,21 @@ st.sidebar.text_input(
     key="gemini_api_key_override",
     help="Used only for this session. Leave blank to use Streamlit Secrets.",
 )
+st.markdown(
+    """
+    <style>
+    [data-testid="stAudioInput"] button {
+        min-width: 3rem;
+        min-height: 3rem;
+    }
+    [data-testid="stAudioInput"] button svg {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 SECTIONS = [
     ("summary", "Summary", "In a sentence or two, describe your professional background "
