@@ -30,6 +30,14 @@ from modules import audio_utils, llm_engine, image_gen, resume_builder, roast_en
 st.set_page_config(page_title="Voice Résumé Builder", page_icon="🎙️", layout="centered")
 history.init_db()
 
+st.sidebar.header("API settings")
+st.sidebar.text_input(
+    "Gemini API key",
+    type="password",
+    key="gemini_api_key_override",
+    help="Used only for this session. Leave blank to use Streamlit Secrets.",
+)
+
 SECTIONS = [
     ("summary", "Summary", "In a sentence or two, describe your professional background "
                             "and what kind of role you're looking for."),
@@ -73,6 +81,8 @@ st.caption("Speak your work history into a polished résumé — or upload one "
 render_back_to_home()
 
 def _has_gemini_key() -> bool:
+    if st.session_state.get("gemini_api_key_override", "").strip():
+        return True
     try:
         return bool(st.secrets.get("GEMINI_API_KEY"))
     except Exception:

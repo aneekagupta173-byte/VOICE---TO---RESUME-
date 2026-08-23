@@ -19,7 +19,7 @@ from google.genai import types
 from pypdf import PdfReader
 import streamlit as st
 
-from modules.llm_engine import get_client, MODEL
+from modules.llm_engine import get_client, log_token_usage, MODEL
 
 
 def extract_text_from_upload(uploaded_file) -> str:
@@ -185,6 +185,7 @@ Résumé:
             ),
         )
         response = chat.send_message(prompt)
+        log_token_usage(response, "roast")
 
         raw = response.text
         print(f"Gemini roast API response: {raw!r}", flush=True)

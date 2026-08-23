@@ -21,6 +21,7 @@ import streamlit as st
 MODEL = "gemini-3.6-flash"
 
 _client = None
+_client_api_key = None
 
 SUMMARY_SCHEMA = {
     "type": "OBJECT",
@@ -109,6 +110,9 @@ def _has_section_content(data: dict, response_name: str) -> bool:
 
 
 def _get_gemini_api_key() -> str | None:
+    session_key = st.session_state.get("gemini_api_key_override", "")
+    if isinstance(session_key, str) and session_key.strip():
+        return session_key.strip()
     try:
         api_key = st.secrets.get("GEMINI_API_KEY")
     except (KeyError, FileNotFoundError):
@@ -117,16 +121,31 @@ def _get_gemini_api_key() -> str | None:
 
 
 def get_client():
-    global _client
-    if _client is None:
-        api_key = _get_gemini_api_key()
-        if not api_key:
-            raise RuntimeError(
-                "GEMINI_API_KEY not set. Add it to Streamlit Secrets. Get a key from "
-                "https://aistudio.google.com/apikey."
-            )
+    global _client, _client_api_key
+    api_key = _get_gemini_api_key()
+    if not api_key:
+        raise RuntimeError(
+            "GEMINI_API_KEY not set. Enter a key in the sidebar or add it to "
+            "Streamlit Secrets. Get a key from https://aistudio.google.com/apikey."
+        )
+    if _client is None or _client_api_key != api_key:
         _client = genai.Client(api_key=api_key)
+        _client_api_key = api_key
     return _client
+
+
+def log_token_usage(response, response_name: str, attempt: int = 1) -> None:
+    usage = response.usage_metadata
+    if usage is None:
+        print(f"Gemini {response_name} token usage: unavailable", flush=True)
+        return
+    print(
+        f"Gemini {response_name} token usage attempt {attempt}: "
+        f"input={usage.prompt_token_count or 0}, "
+        f"output={usage.candidates_token_count or 0}, "
+        f"total={usage.total_token_count or 0}",
+        flush=True,
+    )
 
 
 def _call_json(
@@ -146,6 +165,7 @@ def _call_json(
     for attempt in range(2):
         chat = client.chats.create(model=MODEL, config=config)
         response = chat.send_message(request_prompt)
+        log_token_usage(response, response_name, attempt + 1)
         raw = response.text or ""
         finish_reason = None
         if response.candidates:
