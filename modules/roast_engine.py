@@ -5,14 +5,8 @@ The "Roast My Résumé" feature: extracts plain text from an uploaded résumé
 LLM for a funny-but-genuinely-useful critique — not just jokes, each roast
 line is paired with a real, actionable fix.
 
-IMPORTANT: this does NOT use Gemini's strict JSON response mode
- mode. That mode can reject the entire request (a 400 error)
-if the model's raw output isn't perfectly clean JSON — and free-tier
-models occasionally drift (wrong key names, or a stray sentence before
-the JSON). Instead we take whatever text comes back and parse it
-ourselves, forgiving both extra text around the JSON and slightly wrong
-key names — so a small model quirk degrades gracefully instead of
-crashing the app.
+The response is requested in OpenAI's JSON mode and normalized before it is
+passed to the UI, so the app always receives one predictable shape.
 """
 
 import io
@@ -21,7 +15,6 @@ import re
 from typing import Any
 
 from docx import Document
-from google.genai import types
 from pypdf import PdfReader
 
 from modules.llm_engine import get_client, MODEL
@@ -177,21 +170,21 @@ Return EXACTLY:
     try:
         client = get_client()
 
-        response = client.models.generate_content(
+        response = client.chat.completions.create(
             model=MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction="Return only a valid JSON object matching the requested shape.",
-                temperature=0.3,
-                max_output_tokens=900,
-                response_mime_type="application/json",
-            ),
+            messages=[
+                {"role": "system", "content": "Return only valid JSON matching the requested shape."},
+                {"role": "user", "content": prompt},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.3,
+            max_tokens=900,
         )
 
-        raw = response.text
+        raw = response.choices[0].message.content
 
         if not raw:
-            raise ValueError("Gemini returned an empty response.")
+            raise ValueError("OpenAI returned an empty response.")
 
         data = _extract_json_object(raw)
 

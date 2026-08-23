@@ -23,7 +23,7 @@ import tempfile
 from pathlib import Path
 
 import streamlit as st
-from google.genai.errors import APIError
+from openai import APIError
 
 from modules import audio_utils, llm_engine, image_gen, resume_builder, roast_engine, history
 
@@ -72,15 +72,15 @@ st.caption("Speak your work history into a polished résumé — or upload one "
            "and get it roasted.")
 render_back_to_home()
 
-def _has_gemini_key() -> bool:
+def _has_openai_key() -> bool:
     try:
-        return bool(st.secrets.get("GEMINI_API_KEY") or st.secrets.get("gemini_api"))
+        return bool(st.secrets.get("OPENAI_API_KEY"))
     except Exception:
         return False
 
 
-if not _has_gemini_key():
-    st.warning("GEMINI_API_KEY not set — get a free key at aistudio.google.com/apikey and "
+if not _has_openai_key():
+    st.warning("OPENAI_API_KEY not set — get a key at platform.openai.com/api-keys and "
                "add it to Streamlit Secrets before structuring sections.", icon="⚠️")
 
 # ---------------------------------------------------------------- STAGE 0: mode select
@@ -183,11 +183,11 @@ elif st.session_state.stage == "building":
             st.session_state.banner_bytes = image_gen.generate_header_banner(role)
     except RuntimeError as error:
         st.error(str(error))
-        st.info("Add GEMINI_API_KEY under Streamlit Secrets, then reboot the app.")
+        st.info("Add OPENAI_API_KEY under Streamlit Secrets, then reboot the app.")
         st.stop()
     except APIError as error:
-        st.error(f"Gemini rejected the résumé request: {error}")
-        st.info("Check the Gemini API key, model access, and API quota, then try again.")
+        st.error(f"OpenAI rejected the résumé request: {error}")
+        st.info("Check the OpenAI API key, model access, and API quota, then try again.")
         st.stop()
     except (KeyError, ValueError, TypeError) as error:
         st.error(f"The résumé response was not in the expected format: {error}")

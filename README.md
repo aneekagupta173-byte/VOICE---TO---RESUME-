@@ -20,7 +20,7 @@ BUILD MODE
 Voice (per section) ──► faster-whisper (local STT) ──► raw transcript
                                                               │
                                                               ▼
-                                            Gemini API (free tier)
+                                            OpenAI API (JSON mode)
                                      structures rambling speech into
                                      clean résumé text per section
                                                               │
@@ -42,7 +42,7 @@ Uploaded résumé (.docx/.pdf/.txt) ──► text extraction (python-docx / pyp
         or résumé just built  ─┘
                     │
                     ▼
-          Gemini API (free tier)
+          OpenAI API (JSON mode)
    generates roast lines, each paired
         with a real, actionable fix
                     │
@@ -56,25 +56,29 @@ roast badge image      reads the roast aloud
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env      # add your free GEMINI_API_KEY from aistudio.google.com/apikey
 streamlit run app.py
+```
+
+Before starting the app, create `.streamlit/secrets.toml` and add your key:
+
+```toml
+OPENAI_API_KEY = "your-openai-api-key"
 ```
 
 First run downloads the Whisper `base` model (~140MB) once, then STT runs
 fully offline. TTS and the header image both call free, keyless public
-endpoints — only the LLM structuring step needs your Gemini key, and Gemini's
-free tier costs nothing to use for a project at this scale.
+endpoints — only the LLM structuring and roast steps need your OpenAI key.
 
 ### Streamlit Cloud
 
 Add this to the app's Secrets section under **Manage app > Settings > Secrets**:
 
 ```toml
-GEMINI_API_KEY = "your-gemini-api-key"
+OPENAI_API_KEY = "your-openai-api-key"
 ```
 
-After changing the secret, reboot the app. The local `.env` file is not used by
-the deployed Streamlit Cloud app.
+After changing the secret, reboot the app. The application reads the key only
+from Streamlit Secrets; `.env` files are not used.
 
 ## Project structure
 
@@ -85,8 +89,8 @@ voice_resume_builder/
 ├── .env.example
 └── modules/
     ├── audio_utils.py      # faster-whisper STT + edge-tts TTS
-    ├── llm_engine.py       # structures rough speech into résumé text (Gemini)
-    ├── roast_engine.py     # extracts résumé text + generates the roast (Gemini)
+    ├── llm_engine.py       # structures rough speech into résumé text (OpenAI)
+    ├── roast_engine.py     # extracts résumé text + generates the roast (OpenAI)
     ├── image_gen.py        # free header banner + roast badge (Pollinations.ai)
     └── resume_builder.py   # renders the structured résumé into a .docx
 ```
