@@ -148,14 +148,26 @@ elif st.session_state.stage == "sections":
                             tmp_path = tmp.name
                         transcript = audio_utils.transcribe_audio(tmp_path)
                         Path(tmp_path).unlink(missing_ok=True)
-                    st.session_state.transcripts[key] = transcript
-                    st.rerun()
+                    if not transcript.strip():
+                        st.error("No speech was detected. Please record this section again.")
+                    else:
+                        print(
+                            f"Transcript {key}: {len(transcript)} characters, "
+                            f"{len(transcript.split())} words",
+                            flush=True,
+                        )
+                        st.session_state.transcripts[key] = transcript.strip()
+                        st.rerun()
 
             if done:
                 st.text_area("Transcript (auto-captured)", st.session_state.transcripts[key],
                               key=f"ta_{key}", height=100)
 
-    all_done = all(k in st.session_state.transcripts for k, _, _ in SECTIONS)
+    all_done = all(
+        isinstance(st.session_state.transcripts.get(key), str)
+        and st.session_state.transcripts[key].strip()
+        for key, _, _ in SECTIONS
+    )
     if st.button("Build my résumé →", type="primary", disabled=not all_done):
         st.session_state.stage = "building"
         st.rerun()
@@ -167,6 +179,15 @@ elif st.session_state.stage == "building":
     t = st.session_state.transcripts
 
     try:
+        missing_sections = [
+            label for key, label, _ in SECTIONS
+            if not isinstance(t.get(key), str) or not t[key].strip()
+        ]
+        if missing_sections:
+            raise ValueError(
+                "Missing transcript content for: " + ", ".join(missing_sections)
+            )
+
         with st.spinner("Writing your summary..."):
             st.session_state.resume["summary"] = llm_engine.structure_summary(t["summary"], role)
 
