@@ -139,42 +139,37 @@ def generate_roast(resume_text: str, spice_level: str = "Medium") -> dict:
         "Well Done": "very candid but respectful and solution-focused",
     }[spice_level]
 
-    prompt = f"""
-You are a professional résumé editor providing constructive feedback.
+    prompt = f"""Review the résumé below with a {tone_guide} tone.
+Focus only on clarity, structure, specificity, relevance, and presentation.
+Create 4 to 6 concise observations grounded in the résumé. Every observation
+must include a practical improvement. Do not judge the person or discuss
+sensitive traits. Give a score from 0 to 10 and one encouraging closing sentence.
 
-Review this résumé with a {tone_guide} tone. Focus only on clarity, structure,
-specificity, relevance, and presentation of professional information.
-
-Guidelines:
-- Discuss only the résumé content provided below.
-- Do not judge, diagnose, or make assumptions about the person.
-- Do not mention protected traits, health, politics, religion, or other sensitive topics.
-- Each observation must include one practical résumé improvement.
-- Provide 4 to 6 observations and a score from 0 to 10.
-- Finish with one encouraging, professional sentence.
-- Return ONLY valid JSON.
-- Do NOT use markdown.
-- Do NOT put JSON inside ```.
-
-Résumé content begins:
+Résumé:
 ---
 {resume_text}
 ---
-Résumé content ends.
-
-Return EXACTLY:
-
-{{
-  "score": 7.5,
-  "roast_lines": [
-    {{
-    "line": "clear, respectful observation about the résumé",
-      "fix": "specific actionable improvement"
-    }}
-  ],
-  "overall": "encouraging closing sentence"
-}}
 """
+
+    response_schema = {
+        "type": "OBJECT",
+        "properties": {
+            "score": {"type": "NUMBER"},
+            "roast_lines": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "line": {"type": "STRING"},
+                        "fix": {"type": "STRING"},
+                    },
+                    "required": ["line", "fix"],
+                },
+            },
+            "overall": {"type": "STRING"},
+        },
+        "required": ["score", "roast_lines", "overall"],
+    }
 
     try:
         client = get_client()
@@ -184,8 +179,9 @@ Return EXACTLY:
             config=types.GenerateContentConfig(
                 system_instruction="Return only valid JSON matching the requested shape.",
                 temperature=0.3,
-                max_output_tokens=900,
+                max_output_tokens=1600,
                 response_mime_type="application/json",
+                response_schema=response_schema,
             ),
         )
         response = chat.send_message(prompt)
