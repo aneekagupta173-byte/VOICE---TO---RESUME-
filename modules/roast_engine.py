@@ -183,6 +183,7 @@ Return EXACTLY:
         )
 
         raw = response.text
+        print(f"Gemini roast API response: {raw!r}", flush=True)
 
         if not raw:
             raise ValueError("Gemini returned an empty response.")
@@ -192,7 +193,7 @@ Return EXACTLY:
         return _normalize_roast(data)
 
     except Exception as e:
-        print(f"Gemini roast error: {type(e).__name__}: {e}")
+        print(f"Gemini roast error: {type(e).__name__}: {e!r}", flush=True)
         raise
 
 
