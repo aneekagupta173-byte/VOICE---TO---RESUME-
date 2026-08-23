@@ -123,33 +123,46 @@ def _call_json(
     prompt: str,
     response_schema: dict,
     response_name: str,
-    max_tokens: int = 700,
+    max_tokens: int = 2048,
 ) -> dict:
     client = get_client()
-    chat = client.chats.create(
-        model=MODEL,
-        config=types.GenerateContentConfig(
-            max_output_tokens=max_tokens,
-            response_mime_type="application/json",
-            response_schema=response_schema,
-        ),
+    config = types.GenerateContentConfig(
+        max_output_tokens=max_tokens,
+        response_mime_type="application/json",
+        response_schema=response_schema,
     )
-    response = chat.send_message(prompt)
-    if not response.text:
-        raise ValueError("Gemini returned an empty response.")
-    print(f"Gemini {response_name} JSON response: {response.text!r}", flush=True)
-    st.code(response.text, language="json")
-    if isinstance(response.parsed, Mapping):
-        return dict(response.parsed)
-    if response_name == "skills" and isinstance(response.parsed, list):
-        return {"skills": response.parsed}
 
-    parsed = _parse_json_value(response.text)
-    if isinstance(parsed, dict):
-        return parsed
-    if response_name == "skills" and isinstance(parsed, list):
-        return {"skills": parsed}
-    raise ValueError(f"Gemini returned the wrong JSON shape for {response_name}.")
+    for attempt in range(2):
+        chat = client.chats.create(model=MODEL, config=config)
+        response = chat.send_message(prompt)
+        raw = response.text or ""
+        finish_reason = None
+        if response.candidates:
+            finish_reason = response.candidates[0].finish_reason
+        print(
+            f"Gemini {response_name} response attempt {attempt + 1}: "
+            f"finish_reason={finish_reason!s}, raw={raw!r}",
+            flush=True,
+        )
+        if isinstance(response.parsed, Mapping):
+            return dict(response.parsed)
+        if response_name == "skills" and isinstance(response.parsed, list):
+            return {"skills": response.parsed}
+        if raw:
+            st.code(raw, language="json")
+            try:
+                parsed = _parse_json_value(raw)
+                if isinstance(parsed, dict):
+                    return parsed
+                if response_name == "skills" and isinstance(parsed, list):
+                    return {"skills": parsed}
+            except ValueError:
+                if attempt == 0:
+                    continue
+        if not raw:
+            raise ValueError("Gemini returned an empty response.")
+
+    raise ValueError(f"Gemini returned incomplete JSON for {response_name}.")
 
 
 def structure_summary(transcript: str, target_role: str) -> str:
@@ -186,7 +199,7 @@ Work-history notes end.
 
 Respond ONLY with JSON: {{"experience": [{{"title": "...", "company": "...",
 "duration": "...", "bullets": ["...", "..."]}}]}}"""
-    return _call_json(prompt, EXPERIENCE_SCHEMA, "experience", max_tokens=900)["experience"]
+    return _call_json(prompt, EXPERIENCE_SCHEMA, "experience")["experience"]
 
 
 def structure_education(transcript: str) -> list[dict]:
