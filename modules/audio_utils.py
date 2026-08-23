@@ -1,19 +1,31 @@
 
 
 import asyncio
+import os
 import tempfile
 from pathlib import Path
 
 import edge_tts
+import streamlit as st
 from faster_whisper import WhisperModel
 
 _whisper_model = None
+
+
+def _configure_huggingface_token() -> None:
+    try:
+        token = st.secrets.get("HF_TOKEN")
+    except (KeyError, FileNotFoundError):
+        token = None
+    if isinstance(token, str) and token.strip():
+        os.environ["HF_TOKEN"] = token.strip()
 
 
 def get_whisper_model(model_size: str = "base") -> WhisperModel:
     """Lazy-load so app startup is fast; the model stays cached across calls."""
     global _whisper_model
     if _whisper_model is None:
+        _configure_huggingface_token()
         _whisper_model = WhisperModel(model_size, device="cpu", compute_type="int8")
     return _whisper_model
 

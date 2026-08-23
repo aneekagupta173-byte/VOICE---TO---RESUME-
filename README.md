@@ -63,6 +63,7 @@ Before starting the app, create `.streamlit/secrets.toml` and add your key:
 
 ```toml
 GEMINI_API_KEY = "your-gemini-api-key"
+HF_TOKEN = "your-huggingface-read-token"
 ```
 
 First run downloads the Whisper `base` model (~140MB) once, then STT runs
@@ -75,6 +76,7 @@ Add this to the app's Secrets section under **Manage app > Settings > Secrets**:
 
 ```toml
 GEMINI_API_KEY = "your-gemini-api-key"
+HF_TOKEN = "your-huggingface-read-token"
 ```
 
 After changing the secret, reboot the app. The application reads the key only
