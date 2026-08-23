@@ -19,17 +19,13 @@ Two modes, chosen at the start:
          4. Hear it read aloud (edge-tts) + a generated roast badge image
 """
 
-import os
 import tempfile
 from pathlib import Path
 
 import streamlit as st
-from dotenv import load_dotenv
 from google.genai.errors import APIError
 
 from modules import audio_utils, llm_engine, image_gen, resume_builder, roast_engine, history
-
-load_dotenv(Path(__file__).resolve().parent / ".env")
 
 st.set_page_config(page_title="Voice Résumé Builder", page_icon="🎙️", layout="centered")
 history.init_db()
@@ -77,8 +73,6 @@ st.caption("Speak your work history into a polished résumé — or upload one "
 render_back_to_home()
 
 def _has_gemini_key() -> bool:
-    if os.environ.get("GEMINI_API_KEY"):
-        return True
     try:
         return bool(st.secrets.get("GEMINI_API_KEY") or st.secrets.get("gemini_api"))
     except Exception:
@@ -87,7 +81,7 @@ def _has_gemini_key() -> bool:
 
 if not _has_gemini_key():
     st.warning("GEMINI_API_KEY not set — get a free key at aistudio.google.com/apikey and "
-               "add it to your .env file before structuring sections.", icon="⚠️")
+               "add it to Streamlit Secrets before structuring sections.", icon="⚠️")
 
 # ---------------------------------------------------------------- STAGE 0: mode select
 if st.session_state.stage == "mode_select":
@@ -189,7 +183,7 @@ elif st.session_state.stage == "building":
             st.session_state.banner_bytes = image_gen.generate_header_banner(role)
     except RuntimeError as error:
         st.error(str(error))
-        st.info("For local runs, update .env. For Streamlit Cloud, update GEMINI_API_KEY under Manage app > Settings > Secrets, then reboot the app.")
+        st.info("Add GEMINI_API_KEY under Streamlit Secrets, then reboot the app.")
         st.stop()
     except APIError as error:
         st.error(f"Gemini rejected the résumé request: {error}")

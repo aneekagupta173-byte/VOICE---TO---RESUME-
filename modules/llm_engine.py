@@ -10,7 +10,6 @@ this module.
 """
 
 import json
-import os
 
 from google import genai
 from google.genai import types
@@ -22,12 +21,10 @@ _client = None
 
 
 def _get_gemini_api_key() -> str | None:
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        try:
-            api_key = st.secrets.get("GEMINI_API_KEY") or st.secrets.get("gemini_api")
-        except (KeyError, FileNotFoundError):
-            api_key = None
+    try:
+        api_key = st.secrets.get("GEMINI_API_KEY") or st.secrets.get("gemini_api")
+    except (KeyError, FileNotFoundError):
+        api_key = None
     return api_key.strip() if isinstance(api_key, str) and api_key.strip() else None
 
 
@@ -37,8 +34,8 @@ def get_client():
         api_key = _get_gemini_api_key()
         if not api_key:
             raise RuntimeError(
-                "GEMINI_API_KEY not set. Add it to Streamlit Cloud Secrets or your local .env "
-                "file. Get a key from https://aistudio.google.com/apikey."
+                "GEMINI_API_KEY not set. Add it to Streamlit Secrets. Get a key from "
+                "https://aistudio.google.com/apikey."
             )
         _client = genai.Client(api_key=api_key)
     return _client
