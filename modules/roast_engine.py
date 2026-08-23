@@ -191,7 +191,7 @@ Return EXACTLY:
         return _normalize_roast(data)
 
     except Exception as e:
-        print(f"Gemini roast error: {type(e).__name__}: {e}")
+        print(f"OpenAI roast error: {type(e).__name__}: {e}")
         raise
 
 
@@ -215,7 +215,7 @@ def generate_roast_with_retry(
             last_error = e
 
     raise RuntimeError(
-        f"Gemini Roast failed | "
+        f"OpenAI Roast failed | "
         f"Type={type(last_error).__name__} | "
         f"Error={str(last_error)} | "
         f"Model={MODEL}"

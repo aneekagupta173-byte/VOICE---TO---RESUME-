@@ -86,7 +86,7 @@ from Streamlit Secrets; `.env` files are not used.
 voice_resume_builder/
 ├── app.py                  # Streamlit UI: mode select → build or roast flow
 ├── requirements.txt
-├── .env.example
+├── .streamlit/secrets.toml
 └── modules/
     ├── audio_utils.py      # faster-whisper STT + edge-tts TTS
     ├── llm_engine.py       # structures rough speech into résumé text (OpenAI)

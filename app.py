@@ -7,7 +7,7 @@ Two modes, chosen at the start:
   BUILD  1. Basic info (name, contact, target role) — typed, short/exact
          2. Speak each section (Summary, Experience, Education, Skills) ->
             transcribed locally (faster-whisper) -> structured by an LLM
-             call (Gemini, free tier)
+             call (OpenAI, JSON mode)
          3. A header banner image is generated matching the target role
             (Pollinations.ai, free, no key)
          4. Preview, hear a spoken confirmation (edge-tts), download .docx
@@ -299,10 +299,10 @@ elif st.session_state.stage == "roast_spice":
                 )
             except RuntimeError as error:
                 message = str(error)
-                if "GEMINI_API_KEY not set" in message:
-                    st.error("Gemini key is missing. Add GEMINI_API_KEY in Manage app > Settings > Secrets, then reboot the app.")
+                if "OPENAI_API_KEY not set" in message:
+                    st.error("OpenAI key is missing. Add OPENAI_API_KEY in Manage app > Settings > Secrets, then reboot the app.")
                 else:
-                    st.error("Gemini rejected the roast request. Check that your key is active, then try again.")
+                    st.error("OpenAI rejected the roast request. Check that your key is active, then try again.")
                 st.stop()
             st.session_state.roast_card_bytes = image_gen.generate_roast_card(spice)
             speech_text = roast_engine.roast_to_speech_text(st.session_state.roast_result)
