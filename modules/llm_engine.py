@@ -10,6 +10,7 @@ this module.
 """
 
 import json
+import re
 
 from google import genai
 from google.genai import types
@@ -81,7 +82,13 @@ def _parse_json_object(raw: str) -> dict:
         try:
             data, _ = decoder.raw_decode(cleaned[start:])
         except json.JSONDecodeError:
-            continue
+            candidate = cleaned[start:]
+            candidate = candidate[:candidate.rfind("}") + 1]
+            candidate = re.sub(r",\s*([}\]])", r"\1", candidate)
+            try:
+                data = json.loads(candidate)
+            except json.JSONDecodeError:
+                continue
         if isinstance(data, dict):
             return data
 
@@ -124,6 +131,8 @@ def _call_json(prompt: str, response_schema: dict, max_tokens: int = 700) -> dic
         raise ValueError("Gemini returned an empty response.")
     print(f"Gemini JSON response: {response.text!r}", flush=True)
     st.code(response.text, language="json")
+    if isinstance(response.parsed, dict):
+        return response.parsed
     return _parse_json_object(response.text)
 
 
