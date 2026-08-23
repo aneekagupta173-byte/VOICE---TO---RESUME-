@@ -98,6 +98,16 @@ def _parse_json_value(raw: str) -> Any:
     raise ValueError("Gemini returned no valid JSON value.")
 
 
+def _has_section_content(data: dict, response_name: str) -> bool:
+    key = "summary" if response_name == "confirmation" else response_name
+    value = data.get(key)
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, list):
+        return bool(value)
+    return value is not None
+
+
 def _get_gemini_api_key() -> str | None:
     try:
         api_key = st.secrets.get("GEMINI_API_KEY")
@@ -132,9 +142,10 @@ def _call_json(
         response_schema=response_schema,
     )
 
+    request_prompt = prompt
     for attempt in range(2):
         chat = client.chats.create(model=MODEL, config=config)
-        response = chat.send_message(prompt)
+        response = chat.send_message(request_prompt)
         raw = response.text or ""
         finish_reason = None
         if response.candidates:
@@ -145,24 +156,37 @@ def _call_json(
             flush=True,
         )
         if isinstance(response.parsed, Mapping):
-            return dict(response.parsed)
+            parsed = dict(response.parsed)
+            if _has_section_content(parsed, response_name):
+                return parsed
         if response_name == "skills" and isinstance(response.parsed, list):
-            return {"skills": response.parsed}
+            parsed = {"skills": response.parsed}
+            if _has_section_content(parsed, response_name):
+                return parsed
         if raw:
             st.code(raw, language="json")
             try:
                 parsed = _parse_json_value(raw)
                 if isinstance(parsed, dict):
-                    return parsed
+                    if _has_section_content(parsed, response_name):
+                        return parsed
                 if response_name == "skills" and isinstance(parsed, list):
-                    return {"skills": parsed}
+                    parsed = {"skills": parsed}
+                    if _has_section_content(parsed, response_name):
+                        return parsed
             except ValueError:
                 if attempt == 0:
                     continue
+        if attempt == 0:
+            request_prompt = (
+                f"{prompt}\n\nThe {response_name} field must contain the usable facts "
+                "from the transcript. Do not return an empty value."
+            )
+            continue
         if not raw:
             raise ValueError("Gemini returned an empty response.")
 
-    raise ValueError(f"Gemini returned incomplete JSON for {response_name}.")
+    raise ValueError(f"Gemini returned no usable content for {response_name}.")
 
 
 def structure_summary(transcript: str, target_role: str) -> str:
