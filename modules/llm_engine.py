@@ -10,6 +10,7 @@ from google.genai import types
 import streamlit as st
 
 MODEL = "gemini-3.6-flash"
+MAX_OUTPUT_TOKENS = 4096
 
 _client = None
 _client_api_key = None
@@ -146,6 +147,7 @@ def _call_json(
 ) -> dict:
     client = get_client()
     config = types.GenerateContentConfig(
+        max_output_tokens=MAX_OUTPUT_TOKENS,
         response_mime_type="application/json",
         response_schema=response_schema,
     )
