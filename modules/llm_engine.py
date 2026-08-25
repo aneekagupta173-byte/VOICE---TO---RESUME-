@@ -1,13 +1,4 @@
-"""
-llm_engine.py
-The one external API call in the app: turning a rough, spoken transcript
-("um, so I worked at, like, a coffee shop for two years, I basically ran
-the register and trained new people...") into clean, structured résumé
-text. Uses Google's Gemini API.
 
-Kept isolated in this file on purpose — swap providers by editing only
-this module.
-"""
 
 import json
 import re
@@ -152,11 +143,9 @@ def _call_json(
     prompt: str,
     response_schema: dict,
     response_name: str,
-    max_tokens: int = 800,
 ) -> dict:
     client = get_client()
     config = types.GenerateContentConfig(
-        max_output_tokens=max_tokens,
         response_mime_type="application/json",
         response_schema=response_schema,
     )
@@ -224,7 +213,7 @@ Spoken notes begin:
 Spoken notes end.
 
 Respond ONLY with JSON: {{"summary": "..."}}"""
-    return _call_json(prompt, SUMMARY_SCHEMA, "summary", max_tokens=500)["summary"]
+    return _call_json(prompt, SUMMARY_SCHEMA, "summary")["summary"]
 
 
 def structure_experience(transcript: str) -> list[dict]:
@@ -243,7 +232,7 @@ Work-history notes end.
 
 Respond ONLY with JSON: {{"experience": [{{"title": "...", "company": "...",
 "duration": "...", "bullets": ["...", "..."]}}]}}"""
-    return _call_json(prompt, EXPERIENCE_SCHEMA, "experience", max_tokens=850)["experience"]
+    return _call_json(prompt, EXPERIENCE_SCHEMA, "experience")["experience"]
 
 
 def structure_education(transcript: str) -> list[dict]:
@@ -260,7 +249,7 @@ Education notes end.
 
 Respond ONLY with JSON: {{"education": [{{"degree": "...", "institution": "...",
 "year": "..."}}]}}"""
-    return _call_json(prompt, EDUCATION_SCHEMA, "education", max_tokens=450)["education"]
+    return _call_json(prompt, EDUCATION_SCHEMA, "education")["education"]
 
 
 def structure_skills(transcript: str) -> list[str]:
@@ -276,7 +265,7 @@ Skills notes begin:
 Skills notes end.
 
 Respond ONLY with JSON: {{"skills": ["...", "..."]}}"""
-    return _call_json(prompt, SKILLS_SCHEMA, "skills", max_tokens=350)["skills"]
+    return _call_json(prompt, SKILLS_SCHEMA, "skills")["skills"]
 
 
 def generate_confirmation_summary(resume: dict) -> str:
@@ -290,4 +279,4 @@ were captured, and one standout bullet point. Plain text only, ready to be
 read aloud by a text-to-speech engine, no markdown.Also mention, what can be changed and added to be better into the resume. 
 
 Respond ONLY with JSON: {{"summary": "..."}}"""
-    return _call_json(prompt, SUMMARY_SCHEMA, "confirmation", max_tokens=500)["summary"]
+    return _call_json(prompt, SUMMARY_SCHEMA, "confirmation")["summary"]

@@ -179,7 +179,6 @@ Résumé:
             config=types.GenerateContentConfig(
                 system_instruction="Return only valid JSON matching the requested shape.",
                 temperature=0.3,
-                max_output_tokens=1000,
                 response_mime_type="application/json",
                 response_schema=response_schema,
             ),
